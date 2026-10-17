@@ -43,6 +43,7 @@ Apply: write the "Always" row, then post the notification. Restore: write the ca
 ### Hide apps
 Mechanism: `NSWorkspace.shared.runningApplications` filtered by `activationPolicy == .regular`, excluded: this app, the frontmost app at activation, and the profile's exclusion list. `NSRunningApplication.hide()`. Snapshot: bundle identifiers that were visible (`isHidden == false`) and that this app hid. Restore: `unhide()` for those still running and still hidden.
 Edge cases: apps that refuse to hide; full-screen apps; apps launched during the session (not touched).
+`UNVERIFIED`: no M0 spike covers this action (S1 to S6 do not include it). Verify it in M2 against the per-action manual QA checklist before relying on it.
 
 ### Wallpaper (per display)
 Apply (verified, S2): `NSWorkspace.shared.setDesktopImageURL(_:for:options:)` with a generated solid-color PNG works, but only for the **current Space** of that screen. Other Spaces keep their wallpaper.
@@ -51,11 +52,13 @@ Capture source (verified, S2): `~/Library/Application Support/com.apple.wallpape
 Stable display key: the `CGDisplayCreateUUIDFromDisplayID` UUID is the key the system itself uses in `Index.plist` (S2). Its stability across reboot and reconnection is `UNVERIFIED`, not testable in M0.
 `UNVERIFIED`, not tested in M0: a second display (only one available); applying a wallpaper to all Spaces at once (no tested mechanism: the API changes only the current Space, and writing a synthesized `Index.plist` was not tested); displays connecting or disconnecting mid-session; the lock screen; behavior on macOS 14 and 15. `Index.plist` and the `WallpaperAgent` restart are undocumented and may change between macOS releases (ADR-027).
 
-### Focus / Do Not Disturb (open, ADR-013)
-There is no public API to toggle Focus (Apple Developer Forums thread 729475, web search 2026-10-17). The only known path is running a user-installed Shortcut with `shortcuts run "<name>"` (`ProcessRunner`). Consequences: one manual onboarding step (user installs a Shortcut), no reliable way to read the previous Focus state `UNVERIFIED`, and fragility across macOS releases. The decision on whether to ship this in v1.0, v1.1, or never is made after spike S3.
+### Focus / Do Not Disturb (ADR-013, proposed)
+No public API toggles Focus (Apple Developer Forums thread 729475, from a web search on 2026-10-17; not re-checked). Mechanism (verified, S3): user-created Shortcuts run with `shortcuts run "<name>"` through `ProcessRunner`. "Set Focus: Turn Do Not Disturb On until Turned Off" and "Set Focus: Turn Do Not Disturb Off" each take 0.14 to 0.18 s (one Off outlier at 1.55 s) with no prompt. A missing Shortcut fails with exit 1 and "Couldn’t find shortcut" in 0.05 to 0.12 s.
+Previous state (verified, S3): a Shortcut with "Get Current Focus" run with `--output-path` writes the active Focus name (`Do Not Disturb`) or nothing when no Focus is active, in 0.11 to 0.15 s. The first run while a Focus is active shows "Allow “<shortcut>” to output 1 focus?" (Don’t Allow / Allow Once / Always Allow) and blocks until it is answered (108 s in the test). After Always Allow it no longer prompts. The Focus database `~/Library/DoNotDisturb/` cannot be read without Full Disk Access ("Operation not permitted").
+Distribution (blocked, S3): shipping a prebuilt `.shortcut` file was not possible from the test Mac. Export for "Anyone" requires an iCloud sign-in. The Share menu has no Export File item. Dragging the tile to Finder, `shortcuts sign`, and importing an unsigned file did not produce a usable file (attempts reported by the user). Whether importing a signed file needs iCloud on the receiving Mac is `UNVERIFIED`, because no signed file could be produced. The verified fallback is the user building the Shortcuts by hand (a few minutes, user report).
 
 ## Launch at login
-`SMAppService.mainApp.register()` / `unregister()` (macOS 13+). Status read from `SMAppService.mainApp.status`; the UI reflects the real status, including `requiresApproval`.
+`SMAppService.mainApp.register()` / `unregister()` (macOS 13+). Status read from `SMAppService.mainApp.status`; the UI reflects the real status, including `requiresApproval`. `UNVERIFIED`: not covered by an M0 spike; verify in M2.
 
 ## Spikes (M0)
 
@@ -134,3 +137,13 @@ Entries are `### S<ID> <date> macOS <version>`. Each line is labelled **machine*
 - Side effect, machine: each spike app wrote `KeyboardShortcuts_spike = {"carbonKeyCode":35,"carbonModifiers":6400}` to its own defaults domain. The five tracked domains were unchanged except two keys. `FXRecentFolders` was reordered by the user's Finder use and re-imported from the backup. `NSGlobalDomain SLSMenuBarUseBlurredAppearance` was removed: the user confirmed changing a menu bar appearance option in System Settings during the session and chose to keep it.
 - Not tested: macOS 14 and 15 (not available), the recorder UI, conflicts with system shortcuts.
 - Verdict: **pass** on macOS 27.0. No extra permission is needed for registration or delivery, with or without the hardened runtime.
+
+### S3 2026-10-17 macOS 27.0
+- CLI, machine: `shortcuts help` lists the subcommands `run`, `list`, `view`, `sign` (modes `anyone`, `people-who-know-me`); there is no import or export subcommand. `shortcuts list` returned 0 shortcuts before the spike.
+- Missing Shortcut, machine: `shortcuts run "Presenter Focus On"` before it existed: exit 1, stderr "Error: The operation couldn’t be completed. Couldn’t find shortcut", 0.12, 0.05, 0.05 s (3 runs).
+- Focus store, machine: `ls ~/Library/DoNotDisturb/` and `ls ~/Library/DoNotDisturb/DB` returned "Operation not permitted". `com.apple.ncprefs` does not exist on this version.
+- Build, human: the user created "Presenter Focus On" (Set Focus: Do Not Disturb On, until Turned Off), "Presenter Focus Off" (Set Focus: Do Not Disturb Off) and "Presenter Focus State" (Get Current Focus) by hand in Shortcuts; all actions existed. Baseline, human: no Focus active.
+- Run, machine: On 0.24 s, then State took 108.12 s and output `Do Not Disturb`, Off 0.17 s, State 0.13 s with empty output; all exit 0. Human: the 108 s State run showed the prompt "Allow “Presenter Focus State” to output 1 focus?" with Do Not Disturb listed and the buttons Don’t Allow, Allow Once, Always Allow (user screenshot). The user chose Always Allow. The menu bar showed the Do Not Disturb moon while it was on.
+- Latency, machine: 5 cycles of On, State, Off, State. On 0.16, 0.18, 0.16, 0.14, 0.14 s; State while on 0.15, 0.15, 0.14, 0.13, 0.14 s, output `Do Not Disturb`; Off 0.15, 0.16, 1.55, 0.14, 0.17 s; State while off 0.14, 0.12, 0.12, 0.11, 0.13 s, empty output. All exit 0, no prompt. Final state, machine: State returned empty output (no Focus). Human: Do Not Disturb off.
+- Distribution, human (user report): Share has no Export File item. File > Export with "For: Anyone" shows "In order to do this, you must be signed into iCloud." Dragging the tile to Finder, `shortcuts sign`, and importing an unsigned file produced no usable file. The user declined an iCloud sign-in for the spike.
+- Verdict: **pass** for running, latency, failure behavior and reading the previous state. **Blocked** for shipping a prebuilt `.shortcut` file: it needs an iCloud sign-in on the exporting Mac, which a dedicated project Apple Account would provide. Untested: whether importing needs iCloud on the receiving Mac, Focus modes other than Do Not Disturb, macOS 14 and 15. Decision in ADR-013.
