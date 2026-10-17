@@ -1,0 +1,77 @@
+# XcodeGen spec. The generated .xcodeproj is never committed (ADR-005).
+# Product naming lives only in PRODUCT_DISPLAY_NAME and APP_BUNDLE_IDENTIFIER (ADR-020).
+name: PresenterApp
+
+options:
+  deploymentTarget:
+    macOS: "14.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+
+settings:
+  base:
+    PRODUCT_DISPLAY_NAME: Presenter
+    APP_BUNDLE_IDENTIFIER: dev.imyaxx.presenter
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+    GCC_TREAT_WARNINGS_AS_ERRORS: YES
+    # Builds are unsigned or ad-hoc signed until ADR-022 is decided.
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+
+packages:
+  ModeKit:
+    path: Packages/ModeKit
+
+targets:
+  PresenterApp:
+    type: application
+    platform: macOS
+    sources:
+      - path: App/Sources
+      - path: App/Resources
+    dependencies:
+      - package: ModeKit
+    settings:
+      base:
+        PRODUCT_NAME: $(PRODUCT_DISPLAY_NAME)
+        PRODUCT_MODULE_NAME: PresenterApp
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_IDENTIFIER)
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: $(PRODUCT_DISPLAY_NAME)
+        INFOPLIST_KEY_LSUIElement: YES
+        CODE_SIGN_ENTITLEMENTS: App/Resources/Presenter.entitlements
+        ENABLE_HARDENED_RUNTIME: YES
+        ENABLE_APP_SANDBOX: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+  PresenterAppTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: App/Tests
+    dependencies:
+      - target: PresenterApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_IDENTIFIER).tests
+        GENERATE_INFOPLIST_FILE: YES
+        # The app product is named after PRODUCT_DISPLAY_NAME, not the target, so the host path is explicit.
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/$(PRODUCT_DISPLAY_NAME).app/Contents/MacOS/$(PRODUCT_DISPLAY_NAME)
+        BUNDLE_LOADER: $(TEST_HOST)
+
+schemes:
+  PresenterApp:
+    shared: true
+    build:
+      targets:
+        PresenterApp: all
+        PresenterAppTests: [test]
+    test:
+      targets:
+        - PresenterAppTests

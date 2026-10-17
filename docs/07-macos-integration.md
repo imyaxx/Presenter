@@ -54,6 +54,12 @@ Each spike is a throwaway script or tiny Swift file in `Scripts/spikes/` that is
 | S5 | Desktop icons: Finder restart side effects, key-absent handling | Restore leaves `defaults read` output identical to the start |
 | S6 | Hotkey: `KeyboardShortcuts` on macOS 14/15/26 without extra permissions | Works with hardened runtime, unsigned and ad-hoc signed |
 
+## Verified build facts
+
+- **Ad-hoc signing does not apply the hardened runtime.** With `ENABLE_HARDENED_RUNTIME = YES` and `CODE_SIGN_IDENTITY = -`, Xcode runs `codesign --force --sign - --entitlements ... --timestamp=none --generate-entitlement-der` without `--options runtime`, and `codesign -dvv` shows `flags=0x2(adhoc)` only. The setting takes effect once a real signing identity is used (ADR-022). Verified 2026-10-17, macOS 27.0 (26A428), Xcode 27.1 (27A9275).
+- **`LocalizedStringResource` with an interpolated `defaultValue` resolves through the catalog key.** `LocalizedStringResource("menu.version", defaultValue: "Version \(version)", ...)` uses the catalog's `%@` format for the requested locale: a throwaway script against the built app printed `Версия 0.1.0` for `ru` and `Version 0.1.0` for `en`. Verified 2026-10-17, same system.
+- **A menu-bar-only app with `INFOPLIST_KEY_LSUIElement = YES` runs as a UI element.** `lsappinfo info -only ApplicationType` reported `type="UIElement"` for the built app, so it has no Dock icon. Verified 2026-10-17, same system.
+
 ## Spike log
 
 (empty; append entries as `### S<ID> <date> macOS <version>` with command, observation, verdict)
