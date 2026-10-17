@@ -25,7 +25,20 @@ Key absent (verified, S4): an absent `autohide` key means the Dock is always sho
 Decision: A, plus `defaults delete` when the captured key was absent (ADR-025).
 
 ### Menu bar auto-hide (global)
-Candidate mechanism: global preference `_HIHideMenuBar` in `NSGlobalDomain` and/or the System Events/appearance-related preference; behavior on current macOS (including newer versions with "Automatically hide and show the menu bar" options for full screen / always) is `UNVERIFIED`. The spike must determine: which key, whether it applies live or needs relaunch of `SystemUIServer`/logout, and the exact value domain. If no live-applying mechanism exists, the action is dropped from v1 and the decision is recorded.
+Mechanism (verified, S1): System Settings > Control Center > "Automatically hide and show the menu bar" is stored in three keys:
+
+| UI value | `com.apple.controlcenter AutoHideMenuBarOption` | `NSGlobalDomain _HIHideMenuBar` | `NSGlobalDomain AppleMenuBarVisibleInFullscreen` |
+|---|---|---|---|
+| Always | 0 | true | false |
+| On Desktop Only | 1 | true | true |
+| In Full Screen Only | 2 | false | false |
+| Never | 3 | absent in the test (not written by the UI) | true |
+| Never changed (factory) | absent | absent | absent |
+
+All three keys absent behaves as "In Full Screen Only". Choosing a value in the UI writes explicit values, so choosing the original value in the UI does not restore absent keys.
+Writing the keys does not apply them on its own, not even after `killall ControlCenter` or `killall SystemUIServer`. Writing them and then posting the distributed notification `AppleInterfaceMenuBarHidingChangedNotification` applies the change live, without a process restart or logout. This works from a command-line process and from a hardened-runtime app with no entitlements, with no permission prompt. `_HIHideMenuBar` alone decides desktop hiding, but System Settings displays `AutoHideMenuBarOption`, so all three keys are written together to keep the UI truthful.
+Apply: write the "Always" row, then post the notification. Restore: write the captured values, or delete each key that was absent, then post the notification (ADR-026).
+`UNVERIFIED`: the notification name is not documented by Apple, and the posting side of System Settings was not observed (a `DistributedNotificationCenter` observer for all names received nothing on macOS 27.0, see S1). It may change in a future macOS release. Behavior on macOS 14 and 15 is untested.
 
 ### Hide apps
 Mechanism: `NSWorkspace.shared.runningApplications` filtered by `activationPolicy == .regular`, excluded: this app, the frontmost app at activation, and the profile's exclusion list. `NSRunningApplication.hide()`. Snapshot: bundle identifiers that were visible (`isHidden == false`) and that this app hid. Restore: `unhide()` for those still running and still hidden.
@@ -85,3 +98,15 @@ Entries are `### S<ID> <date> macOS <version>`. Each line is labelled **machine*
 - A key absent, machine: with the key absent, `get autohide of dock preferences` returned `false`; setting `true` then the captured `false` left `autohide = 0` (key diff: `autohide: <absent> -> False`). A following `defaults delete com.apple.dock autohide` without a Dock restart made the key diff empty, and System Events still returned `false`.
 - Final, machine: the `com.apple.dock` key diff and the full diff against the S4 baseline and the original backup were empty. Human: the Dock is auto-hidden as before.
 - Verdict: **pass**. A is immediate and smooth and needs the entitlement, the usage description and one Automation prompt. B needs no permission but reloads the Dock. Restore of an absent key needs `defaults delete` with either mechanism.
+
+### S1 2026-10-17 macOS 27.0
+- Baseline, machine: `_HIHideMenuBar`, `AppleMenuBarVisibleInFullscreen` (`NSGlobalDomain`) and `AutoHideMenuBarOption` (`com.apple.controlcenter`) all absent. Human: System Settings shows "In Full Screen Only".
+- Key discovery, machine: every user and `-currentHost` preference domain was exported before and after the user set each UI value. Key-level diff: Never set `AppleMenuBarVisibleInFullscreen` absent -> true and `AutoHideMenuBarOption` absent -> 3; On Desktop Only set `_HIHideMenuBar` absent -> true and the option 3 -> 1; Always set `AppleMenuBarVisibleInFullscreen` true -> false and the option 1 -> 0; In Full Screen Only set `_HIHideMenuBar` true -> false and the option 0 -> 2. All other changed keys belonged to background daemons (`ContextStoreAgent`, `spotlightknowledged`, `xpc.activity2`, `searchpartyuseragent`) or the System Settings window frame. Human: with Always the menu bar was hidden and appeared at the top edge.
+- UI round trip, machine: returning to In Full Screen Only in the UI left explicit `false`, `false`, `2` where the keys had been absent, so the diff against the baseline was not empty. The three keys were deleted, the diff became empty, and the user saw the original behavior with the UI still on "In Full Screen Only".
+- Refresh, human: after `defaults write` of the Always row the menu bar stayed visible; it stayed visible after `killall ControlCenter` (new PID) and after `killall SystemUIServer` (new PID).
+- Notification discovery, machine: a throwaway `DistributedNotificationCenter` observer with `forName: nil` logged no notifications while the user toggled the setting, and also none for a notification it posted to itself (2 attempts). Observing all names is not usable on this version, so the notification name used next came from memory, not from observation.
+- Notification, human: after `defaults write` of the Always row and posting `AppleInterfaceMenuBarHidingChangedNotification` from a command-line process, the menu bar hid on the desktop and in a full-screen app. After deleting the three keys and posting again, it was visible on the desktop and hidden in full screen (original behavior); machine: diff against the baseline empty.
+- Minimal key, human: writing only `_HIHideMenuBar = true` and posting hid the menu bar on the desktop while System Settings still showed "In Full Screen Only".
+- App, machine and human: a throwaway app `dev.imyaxx.presenter.spike.menubar`, signed `--options runtime` with no entitlements, wrote the keys with `CFPreferencesSetValue` and `CFPreferencesSynchronize` (both returned true) and posted the notification. Human: the menu bar hid with no permission prompt. The app's restore (keys set to nil, notification posted) gave an empty diff against the baseline and the original backup. Human: original behavior and UI value.
+- Not measured: time from post to visible change (visual only, no machine signal).
+- Verdict: **pass**. A live mechanism exists: three keys plus a distributed notification, with no permission. It relies on an undocumented notification name, so the risk is recorded in ADR-023.
