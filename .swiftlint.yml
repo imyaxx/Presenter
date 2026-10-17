@@ -1,0 +1,60 @@
+# Limits mirror docs/03-code-standards.md. Run with --strict: every warning fails.
+included:
+  - App
+  - Packages
+
+excluded:
+  - Packages/ModeKit/.build
+
+# swift-format owns trailing commas (.swift-format); two owners would conflict.
+disabled_rules:
+  - trailing_comma
+
+opt_in_rules:
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - empty_count
+  - fatal_error_message
+  - explicit_init
+  - redundant_nil_coalescing
+
+file_length:
+  warning: 300
+  error: 300
+  ignore_comment_only_lines: false
+
+function_body_length:
+  warning: 50
+  error: 50
+
+nesting:
+  type_level:
+    warning: 3
+    error: 3
+  function_level:
+    warning: 3
+    error: 3
+
+line_length:
+  warning: 120
+  error: 120
+  ignores_urls: true
+
+force_unwrapping:
+  severity: error
+
+force_try:
+  severity: error
+
+force_cast:
+  severity: error
+
+custom_rules:
+  no_print_outside_tests:
+    name: "No print"
+    message: "Use os.Logger instead of print (docs/03-code-standards.md, Logging)."
+    regex: '\bprint\s*\('
+    match_kinds:
+      - identifier
+    excluded: '/Tests/'
+    severity: error
