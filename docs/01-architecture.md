@@ -71,6 +71,18 @@ Rules:
 - `restore` is conditional (ADR-008): if the current system value no longer equals the value this app applied, the user changed it meanwhile; do not overwrite, log, and report `skippedBecauseChangedByUser`.
 - Every action isolates its own failure. One action failing never prevents others from restoring.
 
+## Action mechanisms (verified in M0)
+
+Each action's mechanism, ports and snapshot shape, from the spikes in `docs/07-macos-integration.md`:
+
+| Action | Ports | Snapshot | Decision |
+|---|---|---|---|
+| Desktop icons | `DefaultsStore`, `ProcessRunner` (`killall Finder`) | `CreateDesktop` value or absent | ADR-028 |
+| Dock | `AppleScriptRunner` (System Events), `DefaultsStore` (delete when absent) | `autohide` value or absent | ADR-025 |
+| Menu bar | `DefaultsStore`, `DistributedNotifier` | the three keys, each value or absent | ADR-026 |
+| Wallpaper | `WorkspaceAdapter` (apply), `FileStore` (store bytes), `ProcessRunner` (`killall WallpaperAgent`) | bytes of the wallpaper store `Index.plist`; apply covers the current Space only | ADR-027 |
+| Focus (if ADR-013 is confirmed) | `ProcessRunner` (`shortcuts run`) with a timeout | active Focus name from the user's "Get Current Focus" Shortcut, or none | ADR-013 |
+
 ## Session controller
 
 An `actor SessionController` owns the state machine:
@@ -113,12 +125,13 @@ Constructor injection. `AppEnvironment` in `Application/` builds the object grap
 
 | Port | Real implementation |
 |---|---|
-| `DefaultsStore` | `defaults` domain read/write via `UserDefaults(suiteName:)` / `CFPreferences` |
+| `DefaultsStore` | `defaults` domain read, write and delete via `UserDefaults(suiteName:)` / `CFPreferences`. Delete is required: restore removes keys that were absent at capture (S1, S4, S5) |
 | `ProcessRunner` | `Process` with argv arrays (never a shell string) |
 | `AppleScriptRunner` | `NSAppleScript` / `OSAScript` |
 | `WorkspaceAdapter` | `NSWorkspace`, `NSRunningApplication`, `NSScreen` |
 | `Clock` | `ContinuousClock` wrapper for timer tests |
 | `FileStore` | `FileManager` with atomic writes |
+| `DistributedNotifier` | `DistributedNotificationCenter` post; applies menu bar changes live (ADR-026) |
 
 ## Logging
 
