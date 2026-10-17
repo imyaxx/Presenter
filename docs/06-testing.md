@@ -38,7 +38,7 @@ UI snapshot or UI-automation tests are not part of v1. Visual verification is ma
 
 For each action: capture reads current state; apply sets expected state; restore returns to captured; restore skips when changed; state already equal to target (for example Dock already auto-hidden: snapshot says so, restore leaves it hidden); the system call fails; timeout.
 
-Specific edge cases to cover: Dock already auto-hidden; desktop icons already hidden; wallpaper file deleted between capture and restore; display disconnected between capture and restore; app in hide list not running; app quit during the session; user manually unhid an app during the session; Finder not running.
+Specific edge cases to cover: Dock already auto-hidden; desktop icons already hidden; wallpaper file deleted between capture and restore; display disconnected between capture and restore; app in hide list not running; app quit during the session; user manually unhid an app during the session; Finder not running; the key absent at capture for desktop icons, Dock and menu bar (restore deletes, never writes a default); menu bar keys written explicitly by System Settings; Automation for System Events denied (-1743) or the prompt left unanswered (-1712 after 120 s); original wallpaper is a color or a dynamic wallpaper (restored from the store, not from `desktopImageURL`); a Space created during the session; Focus Shortcut missing (exit 1) or its state prompt unanswered (timeout).
 
 ## Coverage targets
 
@@ -60,9 +60,9 @@ Executed on a real Mac (record macOS version, date, result in the PR). Never reu
 ### Per action
 - [ ] Desktop icons: hidden and restored; Finder windows survive the restart; works with icons already hidden.
 - [ ] Dock: hidden and restored; works when already auto-hidden; position unchanged.
-- [ ] Menu bar: hidden and restored; behavior verified on the current macOS version.
+- [ ] Menu bar: hidden and restored, on the desktop and in a full-screen app; System Settings shows the original value afterwards.
 - [ ] Apps: only listed apps hide; the frontmost app is never hidden; only apps this app hid are unhidden; a closed app is not relaunched.
-- [ ] Wallpaper: solid color and custom image; every selected display; original wallpapers restored per display, including different originals per display; unplug and replug a display.
+- [ ] Wallpaper: solid color and custom image on the current Space of every selected display; other Spaces unchanged; color, still-image and dynamic originals restored, including different originals per display; unplug and replug a display.
 
 ### Surfaces
 - [ ] Appearance System / Light / Dark in every window and the HUD; live switch of the system appearance in System mode.

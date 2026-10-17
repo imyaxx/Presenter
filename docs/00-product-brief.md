@@ -19,10 +19,10 @@ Actions available inside a profile:
 | Action | Behavior |
 |---|---|
 | Hide desktop icons | Global. Finder setting, Finder restarts. |
-| Hide Dock | Auto-hide on, previous state restored. |
+| Hide Dock | Auto-hide on, previous state restored. Needs Automation permission for System Events (ADR-025). |
 | Hide menu bar | Auto-hide on, previous state restored. |
 | Hide apps | A user-defined list. `Cmd+H` equivalent. |
-| Neutral wallpaper | Per display. Solid color or user-chosen image. |
+| Neutral wallpaper | Per display, current Space only (ADR-027). Solid color or user-chosen image. |
 | Auto-exit timer | Optional per profile, off by default. |
 
 Triggers: menu-bar click, one global hotkey (no default; user records it during onboarding).
@@ -35,7 +35,7 @@ Onboarding: hotkey, launch at login, permissions (Automation), optional Focus sh
 
 ## Out of scope for v1.0
 
-- Notification suppression through any private API. Only a user-installed Shortcut path is considered (open decision ADR-013).
+- Notification suppression through any private API. Only user-built Shortcuts run with `shortcuts run` are considered (ADR-013, proposed for v1.0 as an optional action with a manual setup guide).
 - Calendar or app-launch triggers (Zoom, Teams detection). Planned after v1.0.
 - CLI.
 - Auto-update (Sparkle).

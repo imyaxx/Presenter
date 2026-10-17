@@ -4,15 +4,26 @@ Last updated: 2026-10-17
 
 ## Current milestone
 
-Bootstrap: done on branch `chore/bootstrap-repository`, pull request open, not merged. `main` holds the documentation commit only.
+Bootstrap: merged to `main` (`1c7f6e1`, 2026-10-17).
 
-M0: platform spikes. Not started.
+M0: platform spikes done on branch `docs/m0-platform-spikes`, pull request open, not merged. All six spikes have verdicts in `docs/07-macos-integration.md` (spike log). Tested on macOS 27.0 (26A428), Mac17,9, one display, Xcode 27.1.
+
+| Spike | Verdict | Mechanism for M1 |
+|---|---|---|
+| S5 Desktop icons | pass | `CreateDesktop` + `killall Finder`; delete the key if absent (ADR-028) |
+| S4 Dock | pass | System Events AppleScript; entitlement + usage description required; `defaults delete` for absent (ADR-025) |
+| S1 Menu bar | pass | three keys + `AppleInterfaceMenuBarHidingChangedNotification`; no permission (ADR-026) |
+| S2 Wallpaper | pass, design change | apply via NSWorkspace on the current Space only; capture and restore the store `Index.plist` + `killall WallpaperAgent` (ADR-027) |
+| S6 Hotkey | pass | `KeyboardShortcuts` 3.1.0, no Accessibility or Input Monitoring prompt |
+| S3 Focus | pass; distribution blocked | user-built Shortcuts via `shortcuts run`; prebuilt file needs iCloud (ADR-013 proposed) |
+
+Not verified: macOS 14 and 15, a second display, wallpaper on all Spaces at once, `CGDisplayCreateUUIDFromDisplayID` stability across reboot, the hide-apps and launch-at-login mechanisms (no M0 spike), importing a signed `.shortcut`.
 
 ## Next step
 
-1. User: review and squash-merge the bootstrap pull request; configure branch protection and merge options per `docs/05-git-workflow.md` (required check: `make verify`).
-2. User: run the manual QA steps listed in the bootstrap pull request that need a person at the screen (popover content in English and Russian, Quit button).
-3. M0 spikes on the user's Mac. See `docs/07-macos-integration.md`.
+1. User: review the M0 pull request; confirm or reverse ADR-013, ADR-023 and ADR-025 to ADR-028; squash-merge.
+2. M1, first branch `feat/modekit-models-and-persistence` (`docs/08-roadmap.md`). Build on the "Action mechanisms (verified in M0)" table in `docs/01-architecture.md`: `DefaultsStore` needs delete, a `DistributedNotifier` port is new, and the wallpaper snapshot is the store file's bytes.
+3. Spike leftovers on the user's Mac, kept for the user to remove: `$HOME/presenter-spikes/` (backup and throwaway code); defaults domains `dev.imyaxx.presenter.spike.hotkey-adhoc` and `...hotkey-runtime`; the three "Presenter Focus" Shortcuts and their "Always Allow" focus-output grant; Media & Apple Music access for the Claude app, granted during S1 key discovery.
 
 ## Open decisions
 
@@ -20,7 +31,8 @@ M0: platform spikes. Not started.
 |---|---|
 | Product name and bundle identifier prefix | Open. Codename `Presenter` is used until decided. |
 | Code signing and notarization | Open. Depends on audience. Build must work unsigned. |
-| Focus / Do Not Disturb mechanism | Open. Decided after the M0 spike. |
+| Focus / Do Not Disturb mechanism | ADR-013 proposed after S3: optional v1.0 action with a manual Shortcut setup guide; user to confirm. |
+| Dock, menu bar, wallpaper, desktop icons mechanisms (ADR-025 to ADR-028), menu bar kept in v1 (ADR-023) | Proposed by the assistant from M0 evidence; user to confirm. |
 | `swift-tools-version: 6.0` for ModeKit (ADR-024) | Decided by the assistant; user to confirm or reverse. |
 | Product copy tone for the onboarding | Open. Decided in M4. |
 
@@ -28,7 +40,7 @@ M0: platform spikes. Not started.
 
 - Remote: `git@github.com:imyaxx/Presenter.git` (private, empty at 2026-10-17, no branch protection yet). Bootstrap prompt: `docs/prompts/00-bootstrap.md`.
 - The user develops through Claude Code on a Mac. Tool versions verified on 2026-10-17 are in `docs/11-development-setup.md` (Xcode 27.1 locally; CI image `macos-26` with Xcode 26.6).
-- Menu bar auto-hide and Dock auto-hide are global macOS settings. Per-display menu bar behavior is `UNVERIFIED` and assumed impossible. Wallpaper is per display.
+- Menu bar auto-hide and Dock auto-hide are global macOS settings. Per-display menu bar behavior is `UNVERIFIED` and assumed impossible. Wallpaper is per display and per Space; the app changes only the current Space (S2).
 - App cannot be sandboxed (modifies Finder and Dock settings, runs `defaults`, AppleScript). Not eligible for the Mac App Store.
 
 ## Session log
@@ -37,3 +49,4 @@ M0: platform spikes. Not started.
 |---|---|---|---|
 | 2026-10-17 | Pre-M0 | Documentation and `CLAUDE.md` created | Bootstrap task |
 | 2026-10-17 | Bootstrap | Repository initialized and pushed (`main`: docs only). Branch `chore/bootstrap-repository`: tooling configs, ModeKit skeleton, menu-bar app skeleton (EN/RU), Makefile, CI, setup guide | Merge bootstrap PR, then M0 |
+| 2026-10-17 | M0 | Spikes S1 to S6 run on the user's Mac with backup, per-spike diffs and a final diff; results in docs/07, ADR-023 closed, ADR-013 proposed, ADR-025 to ADR-028 added, architecture, brief and test scenarios adjusted | Confirm ADRs, merge, M1 |

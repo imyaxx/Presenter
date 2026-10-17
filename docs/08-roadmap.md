@@ -14,6 +14,7 @@ Prerequisite on the user's Mac: Xcode (current stable), Homebrew, GitHub remote 
 Branch: `docs/m0-platform-spikes` (docs only, plus optional verified spike scripts).
 Run spikes S1 to S6 from `docs/07-macos-integration.md` on the user's Mac. Record results in the spike log. Update ADRs: ADR-013 (Focus), menu bar action feasibility, Dock mechanism.
 Acceptance: every spike has a verdict with evidence; open decisions closed or explicitly deferred; `docs/01-architecture.md` adjusted if a spike changes the design.
+Status: **done on branch `docs/m0-platform-spikes`, 2026-10-17, macOS 27.0 only.** Verdicts: S1 pass, S2 pass with design change, S3 pass (prebuilt Shortcut distribution blocked), S4 pass, S5 pass, S6 pass. ADR-023 closed. ADR-013 and ADR-025 to ADR-028 await user confirmation. macOS 14 and 15 and multi-display are untested.
 
 ## M1: ModeKit core
 
