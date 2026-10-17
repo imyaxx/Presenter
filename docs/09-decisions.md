@@ -42,6 +42,8 @@ Format: ID, decision, rationale, consequences, status. Append new ADRs; never re
 
 **ADR-021 No network access, no telemetry.** Privacy by construction.
 
+**ADR-024 `ModeKit` manifest uses `swift-tools-version: 6.0`.** 6.0 is the lowest tools version with the Swift 6 language mode, which is all the manifest needs. Pinning it to the local toolchain (Swift 6.4, Xcode 27.1 on 2026-10-17) would break CI: the newest GitHub-hosted image `macos-26` ships Xcode 26.6 as its newest version (runner-images readme, checked 2026-10-17). Consequence: raise the tools version only when a manifest feature requires it and CI provides it. Decided by the assistant during bootstrap; user to confirm or reverse.
+
 ## Open
 
 **ADR-013 Focus / Do Not Disturb.** No public API. Only path is a user-installed Shortcut invoked with `shortcuts run`. Decision after spike S3: ship in v1.0, defer to v1.1, or drop.
