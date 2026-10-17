@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: make verify
+    # Pinned image label, not macos-latest, so the toolchain changes only with an explicit commit.
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      HOMEBREW_NO_ANALYTICS: "1"
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      # Only downloaded bottles are cached; installed tools are never restored from cache.
+      - name: Cache Homebrew downloads
+        uses: actions/cache@v6
+        with:
+          path: ~/Library/Caches/Homebrew/downloads
+          key: homebrew-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/workflows/ci.yml') }}
+          restore-keys: |
+            homebrew-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install tools
+        run: brew install xcodegen swiftlint swift-format
+
+      - name: Print tool versions
+        run: |
+          xcodebuild -version
+          swift --version
+          xcodegen --version
+          echo "swiftlint $(swiftlint version)"
+          echo "swift-format $(swift-format --version)"
+
+      - name: Verify
+        run: make verify
