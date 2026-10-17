@@ -14,8 +14,8 @@ Verification record format (append to the spike log at the bottom): macOS versio
 ## Actions
 
 ### Desktop icons (global)
-Mechanism: `defaults write com.apple.finder CreateDesktop -bool false`, then restart Finder (`killall Finder`). Restore: write the captured value, or delete the key if it did not exist, then restart Finder.
-Notes: capture must distinguish "key absent" from "true". Finder windows reopen after restart (`UNVERIFIED` for all window states). ADR-010 accepts the Finder flicker.
+Mechanism (verified, S5): `defaults write com.apple.finder CreateDesktop -bool false`, then `killall Finder`. launchd relaunches Finder by itself; no other restart is needed. Restore: write the captured value, or `defaults delete com.apple.finder CreateDesktop` if the key was absent, then `killall Finder`.
+Notes: capture must distinguish "key absent" from "true"; on the test Mac the key was absent by default, and deleting it restored the domain exactly (S5). Measured: icons gone 0.10 and 0.12 s after the command (2 runs), back after 0.30 to 0.59 s (5 runs) (S5). Two open Finder windows reopened on the same folders (S5, one run); other window states (minimized, full screen, on another Space, unsaved Get Info panels) are `UNVERIFIED`, not tested in M0. ADR-010 accepts the Finder flicker.
 Run through `ProcessRunner` with an argv array.
 
 ### Dock auto-hide (global)
@@ -43,7 +43,7 @@ There is no public API to toggle Focus (Apple Developer Forums thread 729475, we
 
 ## Spikes (M0)
 
-Each spike is a throwaway script or tiny Swift file in `Scripts/spikes/` that is **not** merged into `main` as product code. Results are recorded here and the script may be kept under `Scripts/spikes/` only if it documents a verified fact and is lint-clean.
+Each spike is a throwaway script or tiny Swift file that is **not** merged into `main` as product code. M0 kept its throwaway work outside the repository in `$HOME/presenter-spikes/` (prompt `docs/prompts/01-m0-platform-spikes.md`). Results are recorded here and a script may be committed under `Scripts/spikes/` only if it documents a verified fact and is lint-clean.
 
 | ID | Question | Pass condition |
 |---|---|---|
@@ -62,4 +62,12 @@ Each spike is a throwaway script or tiny Swift file in `Scripts/spikes/` that is
 
 ## Spike log
 
-(empty; append entries as `### S<ID> <date> macOS <version>` with command, observation, verdict)
+Entries are `### S<ID> <date> macOS <version>`. Each line is labelled **machine** (command output, exit code, measured time) or **human** (what the user saw and reported in the session). Test system for every M0 entry unless stated otherwise: macOS 27.0 (26A428), Mac17,9 (Apple M5 Pro), one display (built-in Liquid Retina XDR, 3024 x 1964), Xcode 27.1 (27A9275). Every spike started from a backup of the five preference domains and the wallpaper state, and its baseline was compared with `defaults export <domain> -` converted to XML.
+
+### S5 2026-10-17 macOS 27.0
+- Baseline, machine: `defaults read com.apple.finder CreateDesktop` exited 1, key absent.
+- Apply, machine: `defaults write com.apple.finder CreateDesktop -bool false; killall Finder`. `defaults read-type` reports `boolean`, value `0`. Finder came back under a new PID in 0.13 s without any further command. The Finder window at the desktop-icon window level (`CGWindowLevelForKey(.desktopIconWindow)`, read with `CGWindowListCopyWindowInfo`) disappeared: icons gone in 0.10 and 0.12 s (runs 4 and 5). Runs 2 and 3 timed out waiting for Finder windows the user had closed, so they have no hide timing.
+- Apply, human: desktop icons gone. Two Finder windows open on different folders before the restart reopened on the same folders (1 run).
+- Restore, machine: `defaults delete com.apple.finder CreateDesktop; killall Finder`. Key absent again; desktop-icon window back in 0.59, 0.31, 0.33, 0.30, 0.32 s (5 runs).
+- Diff, machine: in runs 2 to 5 the key-by-key comparison of `com.apple.finder` before and after was empty, and the other four domains and the wallpaper state were unchanged. In run 1 `FXRecentFolders` changed order (the folder `project` moved to the top). The run stopped, the domain was re-imported from the baseline with `defaults import`, and the diff against the backup was empty. The reorder did not recur in runs 2 to 5 without user interaction with Finder windows, so it is attributed to the user clicking a Finder window during the check, not to the restart. This attribution is an inference, not observed directly.
+- Verdict: **pass**. `killall Finder` is enough; restore must delete an absent key; window survival is verified only for two plain windows.
