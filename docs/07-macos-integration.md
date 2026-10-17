@@ -7,7 +7,7 @@ Verification record format (append to the spike log at the bottom): macOS versio
 ## Platform constraints
 
 - App is **not sandboxed** (ADR-006). Hardened runtime enabled for notarization.
-- Sending Apple Events to other apps (System Events) requires `NSAppleEventsUsageDescription` in `Info.plist` and, under hardened runtime, the `com.apple.security.automation.apple-events` entitlement (`UNVERIFIED` exact requirements). The user is prompted once per target app (Automation permission).
+- Sending Apple Events to System Events from a hardened-runtime app requires both `NSAppleEventsUsageDescription` in `Info.plist` and the `com.apple.security.automation.apple-events` entitlement (verified, S4). Without either one there is no prompt: the call fails at once with error -1743, "Not authorized to send Apple events to System Events." With both, the user is prompted once per target app (Automation permission). An unanswered prompt makes the call fail after 120 s with error -1712, "AppleEvent timed out.", and the prompt closes. Permission is reset per bundle id with `tccutil reset AppleEvents <bundle id>`.
 - No Accessibility permission should be required. If a design needs it, stop and record a decision first.
 - The global hotkey uses a Carbon-registered hotkey through the `KeyboardShortcuts` package. This normally needs no Accessibility permission (`UNVERIFIED` on the target version).
 
@@ -19,9 +19,10 @@ Notes: capture must distinguish "key absent" from "true"; on the test Mac the ke
 Run through `ProcessRunner` with an argv array.
 
 ### Dock auto-hide (global)
-Candidate mechanism A: System Events AppleScript, `tell application "System Events" to set autohide of dock preferences to true`. Restore to the captured value. No Dock restart expected.
-Candidate mechanism B: `defaults write com.apple.dock autohide -bool true` plus `killall Dock`.
-Decision: prefer A if the spike confirms it is immediate and reliable. `UNVERIFIED`.
+Mechanism A (verified, S4): System Events AppleScript, `tell application "System Events" to set autohide of dock preferences to true`. Applies immediately with the normal slide animation, no Dock restart (same Dock PID), call time 0.097 to 0.231 s once permission is granted. It writes `com.apple.dock autohide` at once. Needs Automation permission for System Events (see Platform constraints).
+Mechanism B (verified, S4): `defaults write com.apple.dock autohide -bool <value>` plus `killall Dock`. Needs no permission. The Dock visibly reloads (blinks); new Dock process in 0.09 to 0.30 s.
+Key absent (verified, S4): an absent `autohide` key means the Dock is always shown, and System Events reports `false`. A can only write `true` or `false`, so restoring an absent key with A leaves an explicit `autohide = 0`. Following A's write of `false` with `defaults delete com.apple.dock autohide` restores the absent key exactly, without a Dock restart.
+Decision: A, plus `defaults delete` when the captured key was absent (ADR-025).
 
 ### Menu bar auto-hide (global)
 Candidate mechanism: global preference `_HIHideMenuBar` in `NSGlobalDomain` and/or the System Events/appearance-related preference; behavior on current macOS (including newer versions with "Automatically hide and show the menu bar" options for full screen / always) is `UNVERIFIED`. The spike must determine: which key, whether it applies live or needs relaunch of `SystemUIServer`/logout, and the exact value domain. If no live-applying mechanism exists, the action is dropped from v1 and the decision is recorded.
@@ -71,3 +72,16 @@ Entries are `### S<ID> <date> macOS <version>`. Each line is labelled **machine*
 - Restore, machine: `defaults delete com.apple.finder CreateDesktop; killall Finder`. Key absent again; desktop-icon window back in 0.59, 0.31, 0.33, 0.30, 0.32 s (5 runs).
 - Diff, machine: in runs 2 to 5 the key-by-key comparison of `com.apple.finder` before and after was empty, and the other four domains and the wallpaper state were unchanged. In run 1 `FXRecentFolders` changed order (the folder `project` moved to the top). The run stopped, the domain was re-imported from the baseline with `defaults import`, and the diff against the backup was empty. The reorder did not recur in runs 2 to 5 without user interaction with Finder windows, so it is attributed to the user clicking a Finder window during the check, not to the restart. This attribution is an inference, not observed directly.
 - Verdict: **pass**. `killall Finder` is enough; restore must delete an absent key; window survival is verified only for two plain windows.
+
+### S4 2026-10-17 macOS 27.0
+- Baseline, machine: `defaults read com.apple.dock autohide` = `1`; the Dock was already auto-hidden, so each mechanism was tested by turning auto-hide off and back on.
+- B, machine: `defaults write com.apple.dock autohide -bool false; killall Dock`, new Dock PID after 0.09 s; restore with `-bool true; killall Dock`, 0.30 s. Key diff of `com.apple.dock` against the baseline: none.
+- B, human: the Dock became permanently visible with a visible reload (blink), and was auto-hidden again after restore.
+- B key absent, machine: `defaults delete com.apple.dock autohide; killall Dock` as the starting state; apply `-bool true` wrote `1`; restore with `defaults delete` plus `killall Dock` left the key absent, key diff none. Human: with the key absent the Dock is permanently visible.
+- A setup, machine: throwaway app bundles in `$HOME/presenter-spikes/s4-app/`, a Swift executable calling `NSAppleScript.executeAndReturnError`, signed `codesign --force --options runtime --sign - --entitlements <file>`, `codesign -dvv` shows `flags=0x10002(adhoc,runtime)`. Three bundle ids: `dev.imyaxx.presenter.spike.dock-full` (entitlement and usage description), `...dock-noent` (no entitlement), `...dock-nousage` (no usage description).
+- A permission, human (from the user's screenshot): prompt text, bold, "“dock-full” wants access to control “System Events”. Allowing control will provide access to documents and data in “System Events”, and to perform actions within that app." Second line, the usage description: "Spike dock-full changes the Dock auto-hide setting." Buttons: "Don’t Allow", "Allow", and a help button.
+- A permission, machine: an unanswered prompt failed the call after 120.213 s with -1712 "AppleEvent timed out." and the prompt closed. `dock-noent` and `dock-nousage` failed in 0.119 and 0.117 s with -1743 "Not authorized to send Apple events to System Events."; human: no prompt appeared for either.
+- A apply, machine: `set autohide of dock preferences to false` then `true`: calls took 0.108, 0.100, 0.231, 0.109, 0.097 s (5 runs), the Dock PID did not change, and `defaults read com.apple.dock autohide` followed each call immediately. Human: the Dock slid in and out with the normal animation, no reload.
+- A key absent, machine: with the key absent, `get autohide of dock preferences` returned `false`; setting `true` then the captured `false` left `autohide = 0` (key diff: `autohide: <absent> -> False`). A following `defaults delete com.apple.dock autohide` without a Dock restart made the key diff empty, and System Events still returned `false`.
+- Final, machine: the `com.apple.dock` key diff and the full diff against the S4 baseline and the original backup were empty. Human: the Dock is auto-hidden as before.
+- Verdict: **pass**. A is immediate and smooth and needs the entitlement, the usage description and one Automation prompt. B needs no permission but reloads the Dock. Restore of an absent key needs `defaults delete` with either mechanism.
