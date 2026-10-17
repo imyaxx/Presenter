@@ -76,4 +76,4 @@ Executed on a real Mac (record macOS version, date, result in the PR). Never reu
 
 ## CI
 
-`ci.yml` on `macos-latest` (version pinned in the workflow): checkout, install tools, `make verify`. PRs cannot merge on red. CI does not run manual system QA; the PR description records it.
+`ci.yml` on the pinned image `macos-26` (not `macos-latest`, so the toolchain changes only through a commit): checkout, install tools, `make verify`. PRs cannot merge on red. CI does not run manual system QA; the PR description records it.

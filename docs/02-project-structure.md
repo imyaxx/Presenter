@@ -58,8 +58,7 @@
     ├── Resources/
     │   ├── Assets.xcassets      # colors (light/dark variants), app icon, menu-bar icons
     │   ├── Localizable.xcstrings   # String Catalog: en (source), ru
-    │   ├── Info.plist
-    │   └── Presenter.entitlements
+    │   └── Presenter.entitlements   # Info.plist is generated from project.yml build settings
     └── Tests/                   # view-model tests for the app target
 ```
 
@@ -99,7 +98,7 @@
 | `PresenterAppTests` | unit tests | App-layer view model tests |
 | `ModeKit` | local Swift package | Tested with `swift test` |
 
-The product display name and bundle identifier prefix are single build settings in `project.yml`. Renaming the product must be a one-place change (ADR-020).
+The product display name and bundle identifier are single build settings in `project.yml` (`PRODUCT_DISPLAY_NAME`, `APP_BUNDLE_IDENTIFIER`). Renaming the product must be a one-place change (ADR-020). The built app is named after `PRODUCT_DISPLAY_NAME` (`Presenter.app`); the Swift module stays `PresenterApp`. `Info.plist` is not a file in the repository: `GENERATE_INFOPLIST_FILE` builds it from `INFOPLIST_KEY_*` settings, so it cannot drift from those settings.
 
 ## Third-party dependencies
 
