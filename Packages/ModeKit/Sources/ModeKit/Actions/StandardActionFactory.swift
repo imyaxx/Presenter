@@ -1,7 +1,7 @@
 /// The ``ActionFactory`` the app uses: builds the concrete actions over the system ports.
 ///
-/// Supports the desktop icons, Dock, menu bar and hide apps steps; the wallpaper step arrives with its action and
-/// throws ``ActionError/unsupported(_:)`` until then. Threading: a value type holding its ports.
+/// Supports all five steps and identifiers. ``ActionError/unsupported(_:)`` stays in the contract for anything the
+/// enums might gain. Threading: a value type holding its ports.
 public struct StandardActionFactory: ActionFactory {
     private let ports: ActionPorts
     private let wallpaperLocations: WallpaperLocations
@@ -12,7 +12,7 @@ public struct StandardActionFactory: ActionFactory {
         self.wallpaperLocations = wallpaperLocations
     }
 
-    /// - Throws: ``ActionError/unsupported(_:)`` for a step without an action yet.
+    /// Builds the action for `step`; never throws for the current steps.
     public func makeAction(for step: ProfileStep) throws -> any ModeAction {
         switch step {
         case .hideDesktopIcons:
@@ -23,12 +23,12 @@ public struct StandardActionFactory: ActionFactory {
             menuBarAction
         case .hideApps(let exclusions):
             HideAppsAction(exclusions: exclusions, workspace: ports.workspace)
-        case .wallpaper:
-            throw ActionError.unsupported(step.actionIdentifier)
+        case .wallpaper(let choice, let displays):
+            WallpaperAction(choice: choice, displays: displays, ports: ports, locations: wallpaperLocations)
         }
     }
 
-    /// - Throws: ``ActionError/unsupported(_:)`` for an identifier without an action yet.
+    /// Builds the restorer for `identifier`; never throws for the current identifiers.
     public func makeRestorer(for identifier: ActionIdentifier) throws -> any ActionRestorer {
         switch identifier {
         case .desktopIcons:
@@ -40,7 +40,12 @@ public struct StandardActionFactory: ActionFactory {
         case .hideApps:
             HideAppsRestorer(workspace: ports.workspace)
         case .wallpaper:
-            throw ActionError.unsupported(identifier)
+            WallpaperRestorer(
+                fileStore: ports.fileStore,
+                processRunner: ports.processRunner,
+                storeInspector: ports.storeInspector,
+                storeURL: wallpaperLocations.storeURL,
+            )
         }
     }
 
