@@ -34,13 +34,13 @@ struct FourStepSessionTests {
         profile = Harness.fourStepProfile(excluding: [music])
     }
 
-    private func makeHarness(_ world: InitialWorld) -> Harness {
+    private func makeHarness(_ world: InitialWorld) async -> Harness {
         let others: [RunningApplication] = [
             .fixture(terminal, role: .frontmost), .fixture(presenter, role: .thisApplication),
         ]
         switch world {
         case .factory:
-            return Harness(initial: [:], applications: [.fixture(mail), .fixture(notes)] + others)
+            return await Harness(initial: [:], applications: [.fixture(mail), .fixture(notes)] + others)
         case .setBySystemSettings:
             let values: [DefaultsKey: DefaultsValue] = [
                 Harness.createDesktop: .bool(true),
@@ -50,7 +50,7 @@ struct FourStepSessionTests {
                 Harness.menuBarInFullscreen: .bool(false),
             ]
             let applications: [RunningApplication] = [.fixture(mail), .fixture(safari, .hidden), .fixture(music)]
-            return Harness(initial: values, applications: applications + others)
+            return await Harness(initial: values, applications: applications + others)
         case .alreadyAtTarget:
             let values: [DefaultsKey: DefaultsValue] = [
                 Harness.createDesktop: .bool(false),
@@ -59,7 +59,7 @@ struct FourStepSessionTests {
                 Harness.hideMenuBar: .bool(true),
                 Harness.menuBarInFullscreen: .bool(false),
             ]
-            return Harness(initial: values, applications: [.fixture(safari, .hidden)] + others)
+            return await Harness(initial: values, applications: [.fixture(safari, .hidden)] + others)
         }
     }
 
@@ -72,7 +72,7 @@ struct FourStepSessionTests {
     // (a)
     @Test(arguments: InitialWorld.allCases)
     func activateThenDeactivateLeavesTheSystemExactlyAsItWas(world: InitialWorld) async throws {
-        let harness = makeHarness(world)
+        let harness = await makeHarness(world)
         let initialValues = await harness.defaults.values
         let initialApplications = await harness.workspace.applications
         let controller = harness.makeController()
@@ -91,7 +91,7 @@ struct FourStepSessionTests {
     // (b)
     @Test
     func aMenuBarWriteFailingAtTheLastStepRollsBackEveryEarlierStep() async throws {
-        let harness = makeHarness(.setBySystemSettings)
+        let harness = await makeHarness(.setBySystemSettings)
         let initialValues = await harness.defaults.values
         let initialApplications = await harness.workspace.applications
         await harness.defaults.failNext(.write, for: Harness.hideMenuBar, with: DefaultsError.failed(reason: "denied"))
@@ -121,7 +121,7 @@ struct FourStepSessionTests {
     // (c)
     @Test
     func crashRecoveryRestoresEverythingFromTheSessionFileAlone() async throws {
-        let harness = makeHarness(.setBySystemSettings)
+        let harness = await makeHarness(.setBySystemSettings)
         let initialValues = await harness.defaults.values
         let initialApplications = await harness.workspace.applications
         let crashed = harness.makeController()
@@ -141,7 +141,7 @@ struct FourStepSessionTests {
     // (d)
     @Test
     func userChangesToTheMenuBarAndOneApplicationAreKept() async throws {
-        let harness = makeHarness(.factory)
+        let harness = await makeHarness(.factory)
         let initialApplications = await harness.workspace.applications
         let controller = harness.makeController()
         _ = await controller.recoverIfNeeded()
@@ -172,7 +172,7 @@ struct FourStepSessionTests {
 
     @Test
     func aRefusedUnhideDegradesTheSessionAndARetrySucceedsOnceAllowed() async throws {
-        let harness = makeHarness(.factory)
+        let harness = await makeHarness(.factory)
         let initialApplications = await harness.workspace.applications
         let controller = harness.makeController()
         _ = await controller.recoverIfNeeded()

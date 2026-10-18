@@ -26,7 +26,8 @@
 │       │   │                    # ProfileValidation, ProfileValidationError
 │       │   ├── Actions/         # one file per type: DesktopIconsAction(+Error), DockAction(+Error),
 │       │   │                    # MenuBarAction, HideAppsAction, HideAppsRestorer, HideAppsActionError,
-│       │   │                    # StandardActionFactory; the wallpaper action follows
+│       │   │                    # WallpaperAction, WallpaperRestorer, WallpaperActionError,
+│       │   │                    # StandardActionFactory
 │       │   ├── Session/         # SessionController (+Restoration, +Recovery, +Degraded), SessionState,
 │       │   │                    # ActiveSession, DegradedReason, RestoreReport, RecoveryOutcome, TriggerResult,
 │       │   │                    # SessionError, ActionFailure, ActionError, contract (ActionRestorer, ModeAction,
@@ -42,7 +43,9 @@
 │       │                        # (ProcessCommand, ProcessResult, ProcessError), AppleScriptRunner
 │       │                        # (AppleScript, AppleScriptError), WorkspaceAdapter (RunningApplication,
 │       │                        # ApplicationVisibilityChange), DistributedNotifier
-│       │                        # (DistributedNotificationName), SessionLogger (with SessionEvent)
+│       │                        # (DistributedNotificationName), SessionLogger (with SessionEvent),
+│       │                        # SolidColorImageRenderer, WallpaperStoreInspector (WallpaperStoreFingerprint,
+│       │                        # WallpaperStoreError); values: ActionPorts, WallpaperLocations
 │       └── Tests/ModeKitTests/
 │           ├── Model/
 │           ├── Actions/
@@ -54,7 +57,8 @@
 │                                # RecordingSessionLogger, AsyncGate, SessionControllerHarness,
 │                                # FakeDefaultsStore, FakeProcessRunner, FakeAppleScriptRunner,
 │                                # FakeWorkspaceAdapter, FakeDistributedNotifier, RunningApplication+Fixture,
-│                                # StandardActionsHarness)
+│                                # FakeWallpaperStore, FakeWallpaperStoreInspector,
+│                                # FakeSolidColorImageRenderer, StandardActionsHarness)
 └── App/
     ├── Sources/
     │   ├── Application/         # @main, AppDelegate, AppEnvironment (composition root)

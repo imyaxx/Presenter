@@ -19,12 +19,14 @@ Status: **done on branch `docs/m0-platform-spikes`, 2026-10-17, macOS 27.0 only.
 ## M1: ModeKit core
 
 Branches (sequential, each merged separately): `feat/modekit-models-and-persistence`, `feat/modekit-session-controller`, `feat/modekit-actions-desktop-icons-dock`, `feat/modekit-actions-apps-menubar`, `feat/modekit-action-wallpaper`. The last planned branch, `feat/modekit-actions-apps-wallpaper-menubar`, was split in two (prompt 05): the wallpaper action is the riskiest (undocumented store file, polling for the agent) and gets its own branch.
+Status: **complete in code with `feat/modekit-action-wallpaper` (2026-10-18), pending its merge.** All five actions are implemented against ports and tested with fakes only. Nothing has run through ModeKit on a real system.
 Deliverables: domain models; ports and fakes; `ProfileStore` and `SessionStore` with atomic writes and schema versions; `SessionController` actor with the state machine, rollback, conditional restore, crash recovery, timer; actions implemented against ports.
 Acceptance: all mandatory scenarios in `docs/06-testing.md` pass; ModeKit coverage target met; zero imports other than Foundation.
 
 ## M2: app shell
 
 Branches: `feat/platform-adapters`, `feat/menubar-shell`, `feat/hud`, `feat/hotkey`, `feat/design-system-foundation`, `feat/theme-controller`.
+First branch `feat/platform-adapters` carries the obligations recorded in `docs/STATUS.md` and `docs/07-macos-integration.md`: Automation entitlement and usage description, in-app `CFPreferences` for the Finder and Dock domains, verification of `NSRunningApplication.hide()`, and the wallpaper inspector, polling calibration, atomic-replace restore, renderer and display mapping.
 Deliverables: real platform adapters; menu-bar extra with the three icon states; popover with profile list and activate/deactivate; HUD; hotkey registration; launch at login; design tokens, theme controller (System/Light/Dark), L10n infrastructure with EN and RU; design pass confirming accent and icon set.
 Acceptance: end-to-end activate and deactivate of a hand-written `profiles.json` profile using real system effects; core session and per-action manual QA checklists pass; crash and reboot recovery verified manually.
 

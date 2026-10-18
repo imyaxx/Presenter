@@ -72,6 +72,46 @@ Format: ID, decision, rationale, consequences, status. Append new ADRs; never re
 
 **ADR-037 Menu bar action: three keys, skip-when-equal, notification.** Context: S1 found the setting in three keys plus the undocumented `AppleInterfaceMenuBarHidingChangedNotification` (ADR-023, ADR-026), and System Settings writes all three keys whenever the user changes it. Decision: `MenuBarAction` over `DefaultsStore` and a `DistributedNotifier` port. Keys: `com.apple.controlcenter AutoHideMenuBarOption`, `NSGlobalDomain _HIHideMenuBar`, `NSGlobalDomain AppleMenuBarVisibleInFullscreen`; the target is the "Always" row (`0`, `true`, `false`). Snapshot: the three values, each possibly absent; applied state: the target. `apply` does nothing when all three already match (no write, no notification). Otherwise it writes the keys in that order, then posts the notification once; a failing write stops the apply and the controller rolls back with `applied: nil`. `restore` is skipped when any key differs from the applied state. It does nothing when all three already equal the snapshot (absent equals absent). Otherwise it writes each captured value, or removes the key when it was absent (never a default), then posts once. A failing write or remove does not stop the other keys; the first error is thrown after all are attempted and the notification is posted. Consequence: the notification name is undocumented and `post` cannot report whether macOS reacted, so the action cannot verify the live effect. The keys are verified by reading them back in tests only. Proposed by the assistant; user to confirm.
 
+**ADR-038 Wallpaper action: store bytes through `FileStore`, fail-closed apply, polling.** Context: S2 showed that `setDesktopImageURL` changes only the current Space, that the `NSWorkspace` getters misreport color and dynamic wallpapers, and that copying `Index.plist` back plus `killall WallpaperAgent` restores exactly (ADR-027). The wallpaper agent persists a change asynchronously.
+
+Decision, ports:
+- `WorkspaceAdapter` gains `connectedDisplays()` and `setDesktopImage(_:on:)` (current Space only; throws when the file is missing or the display is gone).
+- New `SolidColorImageRenderer.pngData(for:)`, because ModeKit has no image framework.
+- `WallpaperLocations { storeURL, generatedImagesDirectory }`, injected by the composition root.
+- `ActionPorts` groups every port the actions use, `SessionClock` included. `StandardActionFactory.init(ports:wallpaperLocations:)` replaces the five-parameter init of the previous branch. This is a deliberate API change; the prompt gave lint as the reason, but SwiftLint in this repository did not flag the nine-parameter `ActionPorts.init`, so the lasting benefit is a factory signature that no longer changes as ports grow.
+
+Decision, action: `WallpaperAction`, with restore in `WallpaperRestorer` so that recovery needs only the identifier. Snapshot `{ storeData }` (base64 in the session file); applied state `{ displays, fingerprint }`.
+- `capture` reads the store; a missing store throws `storeUnavailable`.
+- `apply` fails closed. It reads and fingerprints the store before any change. It then resolves the displays: `.allDisplays` is the connected displays; `.specific` is that set intersected with the connected ones, sorted; displays that are not connected are skipped. No display left means no change and an applied state with no displays.
+- `apply` then produces the image: an `.image` URL is used as is; a solid color is rendered and written atomically to `solid-rrggbb.png`, which is kept as a cache. It sets the image on each display in order.
+- Finally `apply` polls the store every 100 ms, at most 50 times, through `SessionClock`, until the fingerprint changes. That fingerprint is the applied one; if it never changes, apply throws `storeDidNotChange`. Both constants are guesses for M2 to calibrate.
+- `restore` reads the store (a missing store throws `storeUnavailable`). With `applied` non-nil: equal bytes give `restored` with no write; a fingerprint different from the applied one gives `skippedBecauseChangedByUser`; an inspector failure is a failure, not a guess. Otherwise it writes the snapshot bytes and runs `/usr/bin/killall WallpaperAgent` (10 s; exit 0 or 1 is success, as in ADR-035). With `applied: nil` (an interrupted apply: a crash, or the rollback of a failed apply such as `storeDidNotChange`) it always writes the snapshot bytes and restarts the agent, even when the bytes are equal. The image may already be on screen while the agent has not persisted it, and a late persist by the agent must be overwritten.
+
+Consequences:
+- If the target wallpaper is already the current one, the store does not change and apply fails. This is deliberate: a silent no-op could leave the wallpaper unhidden during a screen share.
+- The restore is whole-file. It drops store entries for Spaces created during the session and reverts wallpaper changes on displays or Spaces this app did not touch. The conditional check covers only what this app changed.
+- An original image file deleted during the session is not recreated. Only the current Space of each selected display changes.
+- After a failed or interrupted apply the rollback always rewrites the store and restarts the agent, at the cost of one agent restart even when nothing was persisted. Whether the restart also discards a change the agent had not yet persisted is not observed and is for M2 to check.
+
+Proposed by the assistant; user to confirm.
+
+**ADR-039 Store format knowledge lives in the adapter behind `WallpaperStoreInspector`.** Context: `Index.plist` is undocumented, and its structure can only be validated against the real system. This branch does not touch the real system, and a guessed parser in ModeKit would be untestable fiction.
+
+Decision: ModeKit compares stores only through `WallpaperStoreInspector.fingerprint(of:)`. It returns an opaque `WallpaperStoreFingerprint`, equal if and only if the wallpaper configuration of every display and Space this app can change is equal, with volatile fields such as `LastUse` ignored. It throws `WallpaperStoreError.unrecognizedFormat(reason:)` for data it does not understand. ModeKit keeps the store bytes opaque; tests use a text-format fake.
+
+Obligations for the M2 adapter branch:
+- Inspect the real `Index.plist` read-only, and implement the inspector with sanitized fixtures.
+- Measure the latency between `setDesktopImageURL` and the store change, and recalibrate the polling constants.
+- Verify that an atomic replace of `Index.plist` followed by `killall WallpaperAgent` restores correctly (S2 used a plain copy).
+- Implement `SolidColorImageRenderer`.
+- Map each `NSScreen` to its `CGDisplayCreateUUIDFromDisplayID` UUID.
+- Test a second display, several Spaces and a full-screen Space.
+- Verify that `desktopImageURL` is needed nowhere.
+
+Consequence: a macOS format change makes apply fail before any change, instead of corrupting the wallpaper. Until the adapter exists, the wallpaper action has run against the fake only.
+
+Proposed by the assistant; user to confirm.
+
 ## Open
 
 **ADR-013 Focus / Do Not Disturb.** No public API. Only path is a user-installed Shortcut invoked with `shortcuts run`. Decision after spike S3: ship in v1.0, defer to v1.1, or drop. Update 2026-10-17 after S3, **proposed, user to confirm**: ship Focus in v1.0 as an optional action. Onboarding contains a manual setup guide: the user builds a "Set Focus: Do Not Disturb On" Shortcut, an "Off" Shortcut and, optionally, a "Get Current Focus" Shortcut for capture. The Shortcut names are configurable. The app runs them with `shortcuts run`. Reason: S3 measured on and off at 0.14 to 0.18 s and state reads at 0.11 to 0.15 s; a missing Shortcut fails fast with exit 1; reading the previous state works after a one-time "output 1 focus?" prompt, which blocks until answered and so needs a timeout. Distribution of a prebuilt `.shortcut` file is deferred until a dedicated project Apple Account exists (M5), because exporting for "Anyone" requires an iCloud sign-in. Proposed by the user in the M0 session.

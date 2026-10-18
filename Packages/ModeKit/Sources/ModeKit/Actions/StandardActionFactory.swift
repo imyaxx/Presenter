@@ -1,30 +1,18 @@
 /// The ``ActionFactory`` the app uses: builds the concrete actions over the system ports.
 ///
-/// Supports the desktop icons, Dock, menu bar and hide apps steps; the wallpaper step arrives with its action and
-/// throws ``ActionError/unsupported(_:)`` until then. Threading: a value type holding its ports.
+/// Supports all five steps and identifiers. ``ActionError/unsupported(_:)`` stays in the contract for anything the
+/// enums might gain. Threading: a value type holding its ports.
 public struct StandardActionFactory: ActionFactory {
-    private let defaults: any DefaultsStore
-    private let processRunner: any ProcessRunner
-    private let appleScriptRunner: any AppleScriptRunner
-    private let workspace: any WorkspaceAdapter
-    private let notifier: any DistributedNotifier
+    private let ports: ActionPorts
+    private let wallpaperLocations: WallpaperLocations
 
-    /// Creates the factory over the ports the actions need.
-    public init(
-        defaults: any DefaultsStore,
-        processRunner: any ProcessRunner,
-        appleScriptRunner: any AppleScriptRunner,
-        workspace: any WorkspaceAdapter,
-        notifier: any DistributedNotifier,
-    ) {
-        self.defaults = defaults
-        self.processRunner = processRunner
-        self.appleScriptRunner = appleScriptRunner
-        self.workspace = workspace
-        self.notifier = notifier
+    /// Creates the factory over the ports the actions need and the wallpaper locations the composition root resolves.
+    public init(ports: ActionPorts, wallpaperLocations: WallpaperLocations) {
+        self.ports = ports
+        self.wallpaperLocations = wallpaperLocations
     }
 
-    /// - Throws: ``ActionError/unsupported(_:)`` for a step without an action yet.
+    /// Builds the action for `step`; never throws for the current steps.
     public func makeAction(for step: ProfileStep) throws -> any ModeAction {
         switch step {
         case .hideDesktopIcons:
@@ -34,13 +22,13 @@ public struct StandardActionFactory: ActionFactory {
         case .hideMenuBar:
             menuBarAction
         case .hideApps(let exclusions):
-            HideAppsAction(exclusions: exclusions, workspace: workspace)
-        case .wallpaper:
-            throw ActionError.unsupported(step.actionIdentifier)
+            HideAppsAction(exclusions: exclusions, workspace: ports.workspace)
+        case .wallpaper(let choice, let displays):
+            WallpaperAction(choice: choice, displays: displays, ports: ports, locations: wallpaperLocations)
         }
     }
 
-    /// - Throws: ``ActionError/unsupported(_:)`` for an identifier without an action yet.
+    /// Builds the restorer for `identifier`; never throws for the current identifiers.
     public func makeRestorer(for identifier: ActionIdentifier) throws -> any ActionRestorer {
         switch identifier {
         case .desktopIcons:
@@ -50,21 +38,26 @@ public struct StandardActionFactory: ActionFactory {
         case .menuBar:
             menuBarAction
         case .hideApps:
-            HideAppsRestorer(workspace: workspace)
+            HideAppsRestorer(workspace: ports.workspace)
         case .wallpaper:
-            throw ActionError.unsupported(identifier)
+            WallpaperRestorer(
+                fileStore: ports.fileStore,
+                processRunner: ports.processRunner,
+                storeInspector: ports.storeInspector,
+                storeURL: wallpaperLocations.storeURL,
+            )
         }
     }
 
     private var desktopIconsAction: DesktopIconsAction {
-        DesktopIconsAction(defaults: defaults, processRunner: processRunner)
+        DesktopIconsAction(defaults: ports.defaults, processRunner: ports.processRunner)
     }
 
     private var dockAction: DockAction {
-        DockAction(defaults: defaults, appleScriptRunner: appleScriptRunner)
+        DockAction(defaults: ports.defaults, appleScriptRunner: ports.appleScriptRunner)
     }
 
     private var menuBarAction: MenuBarAction {
-        MenuBarAction(defaults: defaults, notifier: notifier)
+        MenuBarAction(defaults: ports.defaults, notifier: ports.notifier)
     }
 }
