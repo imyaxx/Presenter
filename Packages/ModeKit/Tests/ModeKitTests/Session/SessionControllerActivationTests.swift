@@ -50,6 +50,24 @@ struct SessionControllerActivationTests {
             states == [.idle, .applying(sessionID: session.sessionID, profileName: "Screen share"), .active(session)])
     }
 
+    @Test
+    func subscriberThatStoppedIsDroppedWhileOthersKeepReceiving() async throws {
+        let controller = await harness.ready()
+        var stopped: AsyncStream<SessionState>? = await controller.stateUpdates()
+        if let stream = stopped {
+            _ = await take(1, from: stream)
+        }
+        stopped = nil
+        let listening = await controller.stateUpdates()
+
+        _ = try await controller.activate(SessionControllerHarness.profile([.dock]))
+        _ = try await controller.deactivate()
+
+        let states = await take(5, from: listening)
+        #expect(states.first == .idle)
+        #expect(states.last == .idle)
+    }
+
     // Scenario 9
     @Test
     func emptyProfileActivatesWithZeroRecordsAndDeactivates() async throws {
