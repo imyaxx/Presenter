@@ -4,17 +4,18 @@ import Testing
 struct LocalizationCatalogTests {
     private static let sourceLanguage = "en"
     private static let requiredLanguages = ["en", "ru"]
+    private static let catalogs = ["Localizable.xcstrings", "InfoPlist.xcstrings"]
 
-    @Test
-    func sourceLanguageIsEnglish() throws {
-        let catalog = try StringCatalog.loadAppCatalog()
+    @Test(arguments: catalogs)
+    func sourceLanguageIsEnglish(catalogName: String) throws {
+        let catalog = try StringCatalog.loadAppCatalog(named: catalogName)
 
         #expect(catalog.sourceLanguage == Self.sourceLanguage)
     }
 
-    @Test
-    func everyKeyHasNonEmptyValueInEveryRequiredLanguage() throws {
-        let catalog = try StringCatalog.loadAppCatalog()
+    @Test(arguments: catalogs)
+    func everyKeyHasNonEmptyValueInEveryRequiredLanguage(catalogName: String) throws {
+        let catalog = try StringCatalog.loadAppCatalog(named: catalogName)
 
         #expect(!catalog.strings.isEmpty)
         for (key, entry) in catalog.strings {
@@ -25,9 +26,9 @@ struct LocalizationCatalogTests {
         }
     }
 
-    @Test
-    func everyKeyHasTranslatorComment() throws {
-        let catalog = try StringCatalog.loadAppCatalog()
+    @Test(arguments: catalogs)
+    func everyKeyHasTranslatorComment(catalogName: String) throws {
+        let catalog = try StringCatalog.loadAppCatalog(named: catalogName)
 
         for (key, entry) in catalog.strings {
             let comment = entry.comment ?? ""
@@ -55,11 +56,11 @@ private struct StringCatalog: Decodable {
     let strings: [String: Entry]
 
     /// Reads the catalog from the source tree, so the test checks the file that is committed.
-    static func loadAppCatalog() throws -> StringCatalog {
+    static func loadAppCatalog(named name: String) throws -> StringCatalog {
         let catalogURL = URL(filePath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appending(path: "Resources/Localizable.xcstrings")
+            .appending(path: "Resources/\(name)")
         let catalogData = try Data(contentsOf: catalogURL)
         return try JSONDecoder().decode(StringCatalog.self, from: catalogData)
     }
