@@ -25,19 +25,26 @@
 │       │   │                    # DisplayIdentifier, BundleIdentifier, AutoExit, ActionIdentifier,
 │       │   │                    # ProfileValidation, ProfileValidationError
 │       │   ├── Actions/         # one folder per action: DesktopIcons/, Dock/, MenuBar/, Apps/, Wallpaper/
-│       │   ├── Session/         # SessionController, SessionState, SessionRecord, ActionRecord, Recovery
+│       │   ├── Session/         # SessionController (+Restoration, +Recovery, +Degraded), SessionState,
+│       │   │                    # ActiveSession, DegradedReason, RestoreReport, RecoveryOutcome, TriggerResult,
+│       │   │                    # SessionError, ActionFailure, ActionError, contract (ActionRestorer, ModeAction,
+│       │   │                    # ActionFactory, RestoreOutcome), SystemSessionClock, SessionRecord, ActionRecord;
+│       │   │                    # internal: AnyModeAction, AnyActionRestorer, CapturePass, ApplyPass,
+│       │   │                    # RestorePass, StatePublisher
 │       │   ├── Persistence/     # ProfileStore, SessionStore, FileManagerFileStore (ADR-029), StoreError,
 │       │   │                    # SchemaVersion; internal: VersionedJSONFile (shared file policy),
 │       │   │                    # VersionedFileEnvelope, ProfilesFile, SessionFile, UndecodableFilePolicy,
 │       │   │                    # PersistenceCoding, TaskSerializer
-│       │   └── Ports/           # protocols for system access (FileStore so far)
+│       │   └── Ports/           # protocols for system access: FileStore, SessionClock, SessionLogger
+│       │                        # (with SessionEvent)
 │       └── Tests/ModeKitTests/
 │           ├── Model/
 │           ├── Actions/
 │           ├── Session/
 │           ├── Persistence/
 │           └── Support/         # fakes and builders shared by tests (InMemoryFileStore, ProfileBuilder,
-│                                # SessionRecordBuilder)
+│                                # SessionRecordBuilder, FakeModeAction, FakeActionFactory, FakeClock,
+│                                # RecordingSessionLogger, AsyncGate, SessionControllerHarness)
 └── App/
     ├── Sources/
     │   ├── Application/         # @main, AppDelegate, AppEnvironment (composition root)

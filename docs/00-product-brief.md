@@ -50,7 +50,7 @@ Onboarding: hotkey, launch at login, permissions (Automation), optional Focus sh
 1. Trigger fires (hotkey or menu).
 2. Controller captures a snapshot of every action in the profile.
 3. Snapshot is written to disk (`session.json`).
-4. Actions are applied in a fixed order.
+4. Actions are applied in the profile's step order and restored in reverse (ADR-031).
 5. Icon switches to the active state, HUD shows the profile name.
 6. If any action fails during apply, already applied actions are rolled back in reverse order, the session file is removed, the user sees an error HUD with the failed action name.
 

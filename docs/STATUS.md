@@ -6,7 +6,10 @@ Last updated: 2026-10-18
 
 Bootstrap: merged to `main` (`1c7f6e1`, 2026-10-17).
 
-M1: ModeKit core in progress. First branch `feat/modekit-models-and-persistence` done, pull request open, not merged: domain models and `ProfileValidation`, the `FileStore` port and the atomic `FileManagerFileStore` (ADR-029), `ProfileStore` and `SessionStore` with schema version and file policy (ADR-030), `SessionRecord` and `ActionRecord`. 63 ModeKit tests; 99.0% line coverage of ModeKit sources. Formats: `docs/12-data-formats.md`.
+M1: ModeKit core in progress.
+
+- Second branch `feat/modekit-session-controller` done, pull request open, not merged. It adds the split action contract (`ActionRestorer`, `ModeAction`, `ActionFactory`, ADR-032), the `SessionClock` and `SessionLogger` ports, and the `SessionController` actor: activate with per-action persistence, rollback, deactivate, the auto-exit timer, crash recovery, retry and discard of an unreadable file. It also adds durable writes with `F_FULLFSYNC` (ADR-033) and settles the apply order (ADR-031). 112 ModeKit tests; 95.3% line coverage of the code added in this branch, 97.1% of all ModeKit sources.
+- First branch `feat/modekit-models-and-persistence` merged to `main` (`18a762d`, 2026-10-18): domain models and `ProfileValidation`, the `FileStore` port and the atomic `FileManagerFileStore` (ADR-029), `ProfileStore` and `SessionStore` with schema version and file policy (ADR-030), `SessionRecord` and `ActionRecord`. Formats: `docs/12-data-formats.md`.
 
 M0: platform spikes merged to `main` (`4e935bc`, 2026-10-17). All six spikes have verdicts in `docs/07-macos-integration.md` (spike log). Tested on macOS 27.0 (26A428), Mac17,9, one display, Xcode 27.1.
 
@@ -23,10 +26,9 @@ Not verified: macOS 14 and 15, a second display, wallpaper on all Spaces at once
 
 ## Next step
 
-1. User: review and squash-merge the `feat/modekit-models-and-persistence` pull request; confirm or reverse ADR-029 and ADR-030 (and, still pending from M0, ADR-013, ADR-023, ADR-025 to ADR-028).
-2. M1, next branch `feat/modekit-session-controller` (`docs/08-roadmap.md`): `SessionController` actor, state machine, rollback, conditional restore, crash recovery, timer, against the stores of this branch. It adds the `Clock` port. Schema version 1 may still change shape without a migration (pre-release rule, ADR-030).
-3. Unresolved doc conflict to settle before the session controller: `docs/00-product-brief.md` says actions apply "in a fixed order", `docs/01-architecture.md` says "in profile order". The stored format keeps the profile's array order.
-4. Spike leftovers on the user's Mac, kept for the user to remove: `$HOME/presenter-spikes/` (backup and throwaway code); defaults domains `dev.imyaxx.presenter.spike.hotkey-adhoc` and `...hotkey-runtime`; the three "Presenter Focus" Shortcuts and their "Always Allow" focus-output grant; Media & Apple Music access for the Claude app, granted during S1 key discovery.
+1. User: review and squash-merge the `feat/modekit-session-controller` pull request; confirm or reverse ADR-031 to ADR-033 (still pending: ADR-013, ADR-023, ADR-025 to ADR-030).
+2. M1, next branch `feat/modekit-actions-desktop-icons-dock` (`docs/08-roadmap.md`): the desktop icons and Dock actions implement `ModeAction` against new `DefaultsStore`, `ProcessRunner` and `AppleScriptRunner` ports, with fakes; mechanisms per ADR-025 and ADR-028. No controller change is needed to add them. Each adapter needs its own timeout, because the controller has none (ADR-032).
+3. Spike leftovers on the user's Mac, kept for the user to remove: `$HOME/presenter-spikes/` (backup and throwaway code); defaults domains `dev.imyaxx.presenter.spike.hotkey-adhoc` and `...hotkey-runtime`; the three "Presenter Focus" Shortcuts and their "Always Allow" focus-output grant; Media & Apple Music access for the Claude app, granted during S1 key discovery.
 
 ## Open decisions
 
@@ -38,7 +40,8 @@ Not verified: macOS 14 and 15, a second display, wallpaper on all Spaces at once
 | Dock, menu bar, wallpaper, desktop icons mechanisms (ADR-025 to ADR-028), menu bar kept in v1 (ADR-023) | Proposed by the assistant from M0 evidence; user to confirm. |
 | `swift-tools-version: 6.0` for ModeKit (ADR-024) | Decided by the assistant; user to confirm or reverse. |
 | Real `FileStore` in ModeKit (ADR-029); on-disk format and file policy (ADR-030) | Proposed by the assistant in M1; user to confirm. |
-| Apply order: fixed (`docs/00`) or profile order (`docs/01`) | Open conflict between docs; the data layer stores profile order. |
+| Apply order (ADR-031), action contract and ports (ADR-032), durable writes (ADR-033) | Proposed by the assistant in M1; user to confirm. |
+| Controller watchdog for a hung action | Not built (ADR-032); revisit if an adapter cannot bound its own wait. |
 | Product copy tone for the onboarding | Open. Decided in M4. |
 
 ## Known constraints
@@ -56,3 +59,4 @@ Not verified: macOS 14 and 15, a second display, wallpaper on all Spaces at once
 | 2026-10-17 | Bootstrap | Repository initialized and pushed (`main`: docs only). Branch `chore/bootstrap-repository`: tooling configs, ModeKit skeleton, menu-bar app skeleton (EN/RU), Makefile, CI, setup guide | Merge bootstrap PR, then M0 |
 | 2026-10-17 | M0 | Spikes S1 to S6 run on the user's Mac with backup, per-spike diffs and a final diff; results in docs/07, ADR-023 closed, ADR-013 proposed, ADR-025 to ADR-028 added, architecture, brief and test scenarios adjusted | Confirm ADRs, merge, M1 |
 | 2026-10-18 | M1 | Branch `feat/modekit-models-and-persistence`: models, validation, `FileStore`, `FileManagerFileStore`, `ProfileStore`, `SessionStore`, ADR-029, ADR-030, `docs/12-data-formats.md` | Merge, then `feat/modekit-session-controller` |
+| 2026-10-18 | M1 | Branch `feat/modekit-session-controller`: action contract, `SessionClock`, `SessionLogger`, `SessionController` (activate, rollback, deactivate, timer, recovery, retry, discard), `F_FULLFSYNC` writes, ADR-031 to ADR-033 | Merge, then `feat/modekit-actions-desktop-icons-dock` |

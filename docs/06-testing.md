@@ -17,8 +17,9 @@ UI snapshot or UI-automation tests are not part of v1. Visual verification is ma
 
 - Arrange / act / assert. One behavior per test. Names describe behavior, not methods.
 - Test boundaries and failures, not only the happy path.
-- Use fakes for ports (`FakeDefaultsStore`, `FakeProcessRunner`, `FakeWorkspaceAdapter`, `FakeClock`, `InMemoryFileStore`) from `Tests/ModeKitTests/Support`. Do not mock internals of the unit under test.
-- Deterministic: no real time, no real network, no dependence on the machine's state. Timers use `FakeClock`.
+- Use fakes for ports (`FakeDefaultsStore`, `FakeProcessRunner`, `FakeWorkspaceAdapter`, `FakeClock` for `SessionClock`, `RecordingSessionLogger` for `SessionLogger`, `InMemoryFileStore`) from `Tests/ModeKitTests/Support`. Do not mock internals of the unit under test.
+- Session controller support: `FakeModeAction` (scripted capture, apply and restore results, an optional `AsyncGate` that suspends inside one call, one shared ordered `FakeCallLog` across actions), `FakeActionFactory`, `AsyncGate` for reentrancy tests, and `SessionControllerHarness`, which wires them to the real `SessionStore` over `InMemoryFileStore`. Assert state sequences through `stateUpdates()`, the call log, the logged events and the final session file.
+- Deterministic: no real time, no real network, no dependence on the machine's state. Timers use `FakeClock` (`advance(by:)` wakes due sleepers). Controller suites carry a one-minute `timeLimit` so a hang fails instead of stalling.
 - Never delete or weaken a test to make it pass. A failing test is fixed in the code or, if the requirement changed, rewritten with the doc change in the same PR.
 
 ## Mandatory scenarios for the session controller
@@ -33,6 +34,11 @@ UI snapshot or UI-automation tests are not part of v1. Visual verification is ma
 8. Auto-exit timer fires with `FakeClock`; manual deactivate cancels it.
 9. Empty profile (no steps), single step, all steps, duplicate steps.
 10. Persistence atomicity: write failure leaves the previous file intact.
+11. Activate before `recoverIfNeeded()` has finished throws `recoveryNotRun`.
+12. Interrupted apply at recovery: a record with nil `appliedData` is restored unconditionally.
+13. Stale timer: an auto-exit timer that fires while the user's deactivate is restoring does nothing.
+
+After an interrupted restore, a later `skippedBecauseChangedByUser` can also mean the value was already restored; tests and the UI must not read it as proof that the user changed something.
 
 ## Per-action unit scenarios
 
