@@ -6,7 +6,7 @@ The two files ModeKit persists, their rules, and the policy for unexpected conte
 
 Both files live in one directory that the composition root passes to the stores (planned: `~/Library/Application Support/<bundle identifier>/`, `docs/01-architecture.md`). ModeKit never resolves paths itself.
 
-Every write is atomic. The new content goes to a temporary file in the same directory, is flushed with `fsync`, then replaces the target with `rename(2)`. A failed write leaves the previous file byte-identical and leaves no temporary file behind.
+Every write is atomic and durable. The new content goes to a temporary file in the same directory, is flushed to permanent storage with `fcntl(F_FULLFSYNC)` (`fsync` only where that is unsupported), then replaces the target with `rename(2)`; the directory is then flushed the same way, best effort (ADR-033). A failed write leaves the previous file byte-identical and leaves no temporary file behind. The full flush took a median 3.8 ms per write on the M0 test Mac's SSD (20 runs); `session.json` is written once at activation start and once per applied action. Behavior under real power loss is unverified.
 
 The app writes JSON pretty-printed with sorted keys, unescaped slashes, ISO 8601 dates with whole seconds, and base64 binary data. Hand-written files may use any key order and whitespace.
 
@@ -86,7 +86,17 @@ Written before any system change (ADR-007) and removed after a complete restore.
 - `actions` is in apply order, one record per action.
 - `identifier` is one of `desktopIcons`, `dock`, `menuBar`, `hideApps`, `wallpaper`.
 - `snapshotData` is the action's encoded snapshot, base64. It is opaque to the store and may be several hundred kilobytes, for example a wallpaper store copy (ADR-027).
-- `appliedData` is the encoded applied state, base64. It is omitted until the action has been applied.
+- `appliedData` is the encoded applied state, base64. It is omitted until the action has been applied. A missing `appliedData` at restore means the apply was interrupted (crash, or a failure while applying that action): the system may be partly changed, so that action is restored to its snapshot unconditionally (ADR-032).
+
+How the file changes during a session:
+
+| Moment | `actions` in `session.json` |
+|---|---|
+| After capture, before the first apply | Every action, none with `appliedData` |
+| After each apply | That action gains `appliedData` |
+| Active | Every action with `appliedData` |
+| Restore or rollback complete | File removed |
+| Restore or rollback with failures (`degraded`) | Only the failed records, unchanged, so a retry restores them conditionally |
 
 ## Schema version
 
