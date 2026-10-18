@@ -99,15 +99,17 @@ Rules:
 
 ## Action mechanisms (verified in M0)
 
-Each action's mechanism, ports and snapshot shape, from the spikes in `docs/07-macos-integration.md`:
+Each action's mechanism, ports and snapshot shape, from the spikes in `docs/07-macos-integration.md`. "Implemented" means implemented in `Packages/ModeKit/Sources/ModeKit/Actions/` against the ports and tested with fakes; the real adapters arrive in M2.
 
-| Action | Ports | Snapshot | Decision |
-|---|---|---|---|
-| Desktop icons | `DefaultsStore`, `ProcessRunner` (`killall Finder`) | `CreateDesktop` value or absent | ADR-028 |
-| Dock | `AppleScriptRunner` (System Events), `DefaultsStore` (delete when absent) | `autohide` value or absent | ADR-025 |
-| Menu bar | `DefaultsStore`, `DistributedNotifier` | the three keys, each value or absent | ADR-026 |
-| Wallpaper | `WorkspaceAdapter` (apply), `FileStore` (store bytes), `ProcessRunner` (`killall WallpaperAgent`) | bytes of the wallpaper store `Index.plist`; apply covers the current Space only | ADR-027 |
-| Focus (if ADR-013 is confirmed) | `ProcessRunner` (`shortcuts run`) with a timeout | active Focus name from the user's "Get Current Focus" Shortcut, or none | ADR-013 |
+| Action | Ports | Snapshot | Decision | State |
+|---|---|---|---|---|
+| Desktop icons | `DefaultsStore`, `ProcessRunner` (`killall Finder`, 10 s) | `CreateDesktop` value or absent | ADR-028, ADR-035 | Implemented (`DesktopIconsAction`) |
+| Dock | `AppleScriptRunner` (System Events, 130 s), `DefaultsStore` (read back; delete when absent) | `autohide` value or absent | ADR-025, ADR-035 | Implemented (`DockAction`) |
+| Menu bar | `DefaultsStore`, `DistributedNotifier` | the three keys, each value or absent | ADR-026 | Next branch |
+| Wallpaper | `WorkspaceAdapter` (apply), `FileStore` (store bytes), `ProcessRunner` (`killall WallpaperAgent`) | bytes of the wallpaper store `Index.plist`; apply covers the current Space only | ADR-027 | Next branch |
+| Focus (if ADR-013 is confirmed) | `ProcessRunner` (`shortcuts run`) with a timeout | active Focus name from the user's "Get Current Focus" Shortcut, or none | ADR-013 | Not started |
+
+`StandardActionFactory` is the `ActionFactory` the app uses. It takes the ports in `init`, builds the implemented actions for their steps and identifiers, and throws `ActionError.unsupported` for the others until they exist. The actions are value types holding their ports, with no shared mutable state. Hide apps is not listed above: its mechanism was not spiked in M0.
 
 ## Session controller
 
@@ -171,9 +173,9 @@ Constructor injection. `AppEnvironment` in `Application/` builds the object grap
 
 | Port | Real implementation |
 |---|---|
-| `DefaultsStore` | `defaults` domain read, write and delete via `UserDefaults(suiteName:)` / `CFPreferences`. Delete is required: restore removes keys that were absent at capture (S1, S4, S5) |
-| `ProcessRunner` | `Process` with argv arrays (never a shell string) |
-| `AppleScriptRunner` | `NSAppleScript` / `OSAScript` |
+| `DefaultsStore` | Defined in ModeKit (`value(for:)`, `set(_:for:)`, `remove(_:)` over `DefaultsKey` and `DefaultsValue`; nil means absent, not false). M2 adapter: `CFPreferences` for other apps' domains, `UNVERIFIED` for `com.apple.finder` and `com.apple.dock` (docs/07). No timeout: local preference access (ADR-034) |
+| `ProcessRunner` | Defined in ModeKit: `run(ProcessCommand)` with an executable URL, an argv array (never a shell string) and a timeout; a nonzero exit is a `ProcessResult`, not an error. M2 adapter: `Process`, enforces the timeout (ADR-034) |
+| `AppleScriptRunner` | Defined in ModeKit: `run(AppleScript, timeout:)`; `AppleScript` is built from a `StaticString` only, so nothing can be interpolated. M2 adapter: `NSAppleScript`, enforces the timeout, maps -1743 and -1712 through `AppleScriptError(code:message:)` (ADR-034) |
 | `WorkspaceAdapter` | `NSWorkspace`, `NSRunningApplication`, `NSScreen` |
 | `SessionClock` | `SystemSessionClock` in ModeKit: `Date()` and `ContinuousClock` sleep. Not named `Clock`, which would shadow the standard library protocol (ADR-032) |
 | `SessionLogger` | `os.Logger` adapter with privacy annotations, in Platform (M2). Receives typed `SessionEvent`s; `reason` strings may contain paths and are logged as private. ModeKit never imports `os` |

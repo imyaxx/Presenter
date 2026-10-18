@@ -24,7 +24,8 @@
 │       │   ├── Model/           # Profile, ProfileStep, WallpaperChoice, SolidColor, DisplaySelection,
 │       │   │                    # DisplayIdentifier, BundleIdentifier, AutoExit, ActionIdentifier,
 │       │   │                    # ProfileValidation, ProfileValidationError
-│       │   ├── Actions/         # one folder per action: DesktopIcons/, Dock/, MenuBar/, Apps/, Wallpaper/
+│       │   ├── Actions/         # one file per type: DesktopIconsAction(+Error), DockAction(+Error),
+│       │   │                    # StandardActionFactory; more actions follow
 │       │   ├── Session/         # SessionController (+Restoration, +Recovery, +Degraded), SessionState,
 │       │   │                    # ActiveSession, DegradedReason, RestoreReport, RecoveryOutcome, TriggerResult,
 │       │   │                    # SessionError, ActionFailure, ActionError, contract (ActionRestorer, ModeAction,
@@ -35,16 +36,22 @@
 │       │   │                    # SchemaVersion; internal: VersionedJSONFile (shared file policy),
 │       │   │                    # VersionedFileEnvelope, ProfilesFile, SessionFile, UndecodableFilePolicy,
 │       │   │                    # PersistenceCoding, TaskSerializer
-│       │   └── Ports/           # protocols for system access: FileStore, SessionClock, SessionLogger
+│       │   └── Ports/           # protocols for system access: FileStore, SessionClock, SessionLogger,
+│       │                        # DefaultsStore (DefaultsKey, DefaultsValue, DefaultsError), ProcessRunner
+│       │                        # (ProcessCommand, ProcessResult, ProcessError), AppleScriptRunner
+│       │                        # (AppleScript, AppleScriptError)
 │       │                        # (with SessionEvent)
 │       └── Tests/ModeKitTests/
 │           ├── Model/
 │           ├── Actions/
 │           ├── Session/
 │           ├── Persistence/
+│           ├── Ports/
 │           └── Support/         # fakes and builders shared by tests (InMemoryFileStore, ProfileBuilder,
 │                                # SessionRecordBuilder, FakeModeAction, FakeActionFactory, FakeClock,
-│                                # RecordingSessionLogger, AsyncGate, SessionControllerHarness)
+│                                # RecordingSessionLogger, AsyncGate, SessionControllerHarness,
+│                                # FakeDefaultsStore, FakeProcessRunner, FakeAppleScriptRunner,
+│                                # StandardActionsHarness)
 └── App/
     ├── Sources/
     │   ├── Application/         # @main, AppDelegate, AppEnvironment (composition root)
