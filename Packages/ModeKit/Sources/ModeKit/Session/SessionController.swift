@@ -26,6 +26,9 @@ public actor SessionController {
     public private(set) var state = SessionState.idle
     var recoveryProgress = RecoveryProgress.notStarted
     var appliedSession: AppliedSession?
+    /// Set while a retry or discard runs. Both start from `degraded` and cannot set a new state before their first
+    /// suspension (an unreadable file has no session ID yet), so this flag makes a racing retry or discard ignored.
+    var isResolvingDegradedState = false
     var autoExitTask: Task<Void, Never>?
     private let statePublisher = StatePublisher()
 
