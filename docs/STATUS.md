@@ -8,7 +8,8 @@ Bootstrap: merged to `main` (`1c7f6e1`, 2026-10-17).
 
 M1: ModeKit core in progress.
 
-- Second branch `feat/modekit-session-controller` done, pull request open, not merged. It adds the split action contract (`ActionRestorer`, `ModeAction`, `ActionFactory`, ADR-032), the `SessionClock` and `SessionLogger` ports, and the `SessionController` actor: activate with per-action persistence, rollback, deactivate, the auto-exit timer, crash recovery, retry and discard of an unreadable file. It also adds durable writes with `F_FULLFSYNC` (ADR-033) and settles the apply order (ADR-031). 112 ModeKit tests; 95.3% line coverage of the code added in this branch, 97.1% of all ModeKit sources.
+- Third branch `feat/modekit-actions-desktop-icons-dock` done, pull request open, not merged. It adds the `DefaultsStore`, `ProcessRunner` and `AppleScriptRunner` ports (ADR-034), `DesktopIconsAction` and `DockAction` with skip-when-equal and the `killall` exit-1 rule (ADR-035), and `StandardActionFactory`. End-to-end tests run the real controller over stateful fakes. 150 ModeKit tests; 100% line coverage of the code added in this branch, 97.6% of all ModeKit sources. No change to the controller, the stores or the file formats.
+- Second branch `feat/modekit-session-controller` merged to `main` (`7bb4531`, 2026-10-18). It adds the split action contract (`ActionRestorer`, `ModeAction`, `ActionFactory`, ADR-032), the `SessionClock` and `SessionLogger` ports, and the `SessionController` actor: activate with per-action persistence, rollback, deactivate, the auto-exit timer, crash recovery, retry and discard of an unreadable file. It also adds durable writes with `F_FULLFSYNC` (ADR-033) and settles the apply order (ADR-031). 112 ModeKit tests; 95.3% line coverage of the code added in this branch, 97.1% of all ModeKit sources.
 - First branch `feat/modekit-models-and-persistence` merged to `main` (`18a762d`, 2026-10-18): domain models and `ProfileValidation`, the `FileStore` port and the atomic `FileManagerFileStore` (ADR-029), `ProfileStore` and `SessionStore` with schema version and file policy (ADR-030), `SessionRecord` and `ActionRecord`. Formats: `docs/12-data-formats.md`.
 
 M0: platform spikes merged to `main` (`4e935bc`, 2026-10-17). All six spikes have verdicts in `docs/07-macos-integration.md` (spike log). Tested on macOS 27.0 (26A428), Mac17,9, one display, Xcode 27.1.
@@ -26,8 +27,9 @@ Not verified: macOS 14 and 15, a second display, wallpaper on all Spaces at once
 
 ## Next step
 
-1. User: review and squash-merge the `feat/modekit-session-controller` pull request; confirm or reverse ADR-031 to ADR-033 (still pending: ADR-013, ADR-023, ADR-025 to ADR-030).
-2. M1, next branch `feat/modekit-actions-desktop-icons-dock` (`docs/08-roadmap.md`): the desktop icons and Dock actions implement `ModeAction` against new `DefaultsStore`, `ProcessRunner` and `AppleScriptRunner` ports, with fakes; mechanisms per ADR-025 and ADR-028. No controller change is needed to add them. Each adapter needs its own timeout, because the controller has none (ADR-032).
+1. User: review and squash-merge the `feat/modekit-actions-desktop-icons-dock` pull request; confirm or reverse ADR-034 and ADR-035 (still pending: ADR-013, ADR-023, ADR-025 to ADR-033).
+2. M1, next and last branch `feat/modekit-actions-apps-wallpaper-menubar` (`docs/08-roadmap.md`): hide apps, wallpaper and menu bar actions; the `WorkspaceAdapter` and `DistributedNotifier` ports; extend `StandardActionFactory`. Hide apps has no M0 spike (docs/07).
+3. M2 requirement from this branch, for `feat/platform-adapters` (the first branch with a real `AppleScriptRunner`): add the `com.apple.security.automation.apple-events` entitlement and `NSAppleEventsUsageDescription` (ADR-025), localized. Proposed wording, English: "Presenter controls the Dock's auto-hide setting through System Events while a profile is active." Russian: "Presenter управляет автоматическим скрытием Дока через System Events, пока профиль активен." The same branch must verify in-app `CFPreferences` access to `com.apple.finder` and `com.apple.dock`, or use the `defaults` tool through `ProcessRunner` (docs/07), and must enforce the 10 s `killall` and 130 s AppleScript timeouts in the adapters.
 3. Spike leftovers on the user's Mac, kept for the user to remove: `$HOME/presenter-spikes/` (backup and throwaway code); defaults domains `dev.imyaxx.presenter.spike.hotkey-adhoc` and `...hotkey-runtime`; the three "Presenter Focus" Shortcuts and their "Always Allow" focus-output grant; Media & Apple Music access for the Claude app, granted during S1 key discovery.
 
 ## Open decisions
@@ -42,6 +44,8 @@ Not verified: macOS 14 and 15, a second display, wallpaper on all Spaces at once
 | Real `FileStore` in ModeKit (ADR-029); on-disk format and file policy (ADR-030) | Proposed by the assistant in M1; user to confirm. |
 | Apply order (ADR-031), action contract and ports (ADR-032), durable writes (ADR-033) | Proposed by the assistant in M1; user to confirm. |
 | Controller watchdog for a hung action | Not built (ADR-032); revisit if an adapter cannot bound its own wait. |
+| System ports and literal scripts (ADR-034), skip-when-equal and `killall` exit 1 (ADR-035) | Proposed by the assistant in M1; the `killall` rule was confirmed by the user on 2026-10-18; the rest awaits confirmation. |
+| Dock `autohide` stored as a non-boolean (for example `integer 1`) | Treated as "off" for the script (decision in prompt 04), then written back with its type. Not observed on a real system. |
 | Product copy tone for the onboarding | Open. Decided in M4. |
 
 ## Known constraints
@@ -59,4 +63,5 @@ Not verified: macOS 14 and 15, a second display, wallpaper on all Spaces at once
 | 2026-10-17 | Bootstrap | Repository initialized and pushed (`main`: docs only). Branch `chore/bootstrap-repository`: tooling configs, ModeKit skeleton, menu-bar app skeleton (EN/RU), Makefile, CI, setup guide | Merge bootstrap PR, then M0 |
 | 2026-10-17 | M0 | Spikes S1 to S6 run on the user's Mac with backup, per-spike diffs and a final diff; results in docs/07, ADR-023 closed, ADR-013 proposed, ADR-025 to ADR-028 added, architecture, brief and test scenarios adjusted | Confirm ADRs, merge, M1 |
 | 2026-10-18 | M1 | Branch `feat/modekit-models-and-persistence`: models, validation, `FileStore`, `FileManagerFileStore`, `ProfileStore`, `SessionStore`, ADR-029, ADR-030, `docs/12-data-formats.md` | Merge, then `feat/modekit-session-controller` |
+| 2026-10-18 | M1 | Branch `feat/modekit-actions-desktop-icons-dock`: `DefaultsStore`, `ProcessRunner`, `AppleScriptRunner` ports, `DesktopIconsAction`, `DockAction`, `StandardActionFactory`, end-to-end tests, ADR-034, ADR-035 | Merge, then `feat/modekit-actions-apps-wallpaper-menubar` |
 | 2026-10-18 | M1 | Branch `feat/modekit-session-controller`: action contract, `SessionClock`, `SessionLogger`, `SessionController` (activate, rollback, deactivate, timer, recovery, retry, discard), `F_FULLFSYNC` writes, ADR-031 to ADR-033 | Merge, then `feat/modekit-actions-desktop-icons-dock` |
