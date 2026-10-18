@@ -43,7 +43,7 @@ actor FakeWallpaperStore {
     ) async -> FakeWallpaperStore {
         let store = FakeWallpaperStore(files: files, url: url)
         await files.place(encode(wallpapers, lastUse: 0), at: url)
-        await files.onRead { readURL in await store.didRead(readURL) }
+        await files.onRead { [weak store] readURL in await store?.didRead(readURL) }
         return store
     }
 
