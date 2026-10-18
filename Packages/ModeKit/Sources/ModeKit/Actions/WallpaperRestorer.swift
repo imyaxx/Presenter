@@ -63,9 +63,11 @@ public struct WallpaperRestorer: ActionRestorer {
         self.storeURL = storeURL
     }
 
-    /// Writes the captured store bytes back and restarts the wallpaper agent, unless the store already holds exactly
-    /// those bytes (nothing to do) or its fingerprint no longer equals the applied one (the user changed the
-    /// wallpaper; skipped). `applied: nil` skips the fingerprint check and restores unconditionally.
+    /// Writes the captured store bytes back and restarts the wallpaper agent. With `applied` non-nil, skips the work
+    /// when the store already holds exactly those bytes (nothing to do) or its fingerprint no longer equals the
+    /// applied one (the user changed the wallpaper; skipped). `applied: nil` (interrupted apply) always writes and
+    /// restarts the agent, even when the bytes are equal: the image may already be on screen while the agent has not
+    /// persisted it yet, and a late persist must be overwritten (ADR-038).
     ///
     /// - Throws: ``WallpaperActionError/storeUnavailable``, ``WallpaperStoreError`` (no guess when the current store
     ///   cannot be inspected), errors of ``FileStore``, ``ProcessError``, or
@@ -74,11 +76,13 @@ public struct WallpaperRestorer: ActionRestorer {
         guard let current = try await fileStore.read(storeURL) else {
             throw WallpaperActionError.storeUnavailable
         }
-        guard current != snapshot.storeData else {
-            return .restored
-        }
-        if let applied, try storeInspector.fingerprint(of: current) != applied.fingerprint {
-            return .skippedBecauseChangedByUser
+        if let applied {
+            guard current != snapshot.storeData else {
+                return .restored
+            }
+            guard try storeInspector.fingerprint(of: current) == applied.fingerprint else {
+                return .skippedBecauseChangedByUser
+            }
         }
         try await fileStore.write(snapshot.storeData, to: storeURL)
         let result = try await processRunner.run(Self.restartWallpaperAgent)

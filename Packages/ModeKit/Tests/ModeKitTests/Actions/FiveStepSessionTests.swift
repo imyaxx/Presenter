@@ -143,6 +143,12 @@ struct FiveStepSessionTests {
         }
 
         #expect(harness.actionClock.sleeps.count == 50)
+        let storeWrites = await harness.fileStore.operations.filter { $0 == .write("Index.plist") }
+        #expect(storeWrites.count == 1)
+        #expect(
+            await harness.processRunner.commands == [
+                Self.killallFinder, Self.killallWallpaperAgent, Self.killallFinder,
+            ])
         #expect(await harness.defaults.values == initialValues)
         #expect(await harness.workspace.applications == initialApplications)
         #expect(await harness.wallpaperStoreData() == initialStore)

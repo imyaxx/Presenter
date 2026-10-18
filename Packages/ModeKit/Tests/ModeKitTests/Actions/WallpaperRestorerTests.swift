@@ -93,6 +93,18 @@ struct WallpaperRestorerTests {
         #expect(await processRunner.commands.isEmpty)
     }
 
+    @Test
+    func restoreAfterAnInterruptedApplyWritesAndRestartsTheAgentEvenWhenTheBytesAreEqual() async throws {
+        await files.place(Self.original, at: Self.storeURL)
+
+        let outcome = try await restoreOriginal(expecting: nil)
+
+        #expect(outcome == .restored)
+        #expect(await files.operations == [.read("Index.plist"), .write("Index.plist")])
+        #expect(await files.contents(of: Self.storeURL) == Self.original)
+        #expect(await processRunner.commands == [Self.killallWallpaperAgent])
+    }
+
     // Per-action scenario: restore skips when changed
     @Test
     func restoreIsSkippedWhenTheUserChangedTheWallpaper() async throws {

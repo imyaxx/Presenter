@@ -85,13 +85,13 @@ Decision, action: `WallpaperAction`, with restore in `WallpaperRestorer` so that
 - `apply` fails closed. It reads and fingerprints the store before any change. It then resolves the displays: `.allDisplays` is the connected displays; `.specific` is that set intersected with the connected ones, sorted; displays that are not connected are skipped. No display left means no change and an applied state with no displays.
 - `apply` then produces the image: an `.image` URL is used as is; a solid color is rendered and written atomically to `solid-rrggbb.png`, which is kept as a cache. It sets the image on each display in order.
 - Finally `apply` polls the store every 100 ms, at most 50 times, through `SessionClock`, until the fingerprint changes. That fingerprint is the applied one; if it never changes, apply throws `storeDidNotChange`. Both constants are guesses for M2 to calibrate.
-- `restore` reads the store (a missing store throws `storeUnavailable`). Equal bytes: `restored`, with no write. A fingerprint different from the applied one: `skippedBecauseChangedByUser`. An inspector failure is a failure, not a guess. Otherwise it writes the snapshot bytes and runs `/usr/bin/killall WallpaperAgent` (10 s; exit 0 or 1 is success, as in ADR-035). `applied: nil` skips the fingerprint check.
+- `restore` reads the store (a missing store throws `storeUnavailable`). With `applied` non-nil: equal bytes give `restored` with no write; a fingerprint different from the applied one gives `skippedBecauseChangedByUser`; an inspector failure is a failure, not a guess. Otherwise it writes the snapshot bytes and runs `/usr/bin/killall WallpaperAgent` (10 s; exit 0 or 1 is success, as in ADR-035). With `applied: nil` (an interrupted apply: a crash, or the rollback of a failed apply such as `storeDidNotChange`) it always writes the snapshot bytes and restarts the agent, even when the bytes are equal. The image may already be on screen while the agent has not persisted it, and a late persist by the agent must be overwritten.
 
 Consequences:
 - If the target wallpaper is already the current one, the store does not change and apply fails. This is deliberate: a silent no-op could leave the wallpaper unhidden during a screen share.
 - The restore is whole-file. It drops store entries for Spaces created during the session and reverts wallpaper changes on displays or Spaces this app did not touch. The conditional check covers only what this app changed.
 - An original image file deleted during the session is not recreated. Only the current Space of each selected display changes.
-- If the agent persists only after the polling window, the rollback finds the store bytes unchanged and writes nothing, so the new desktop image may stay on screen until the agent next reads the store. This is not observed and is for M2 to check.
+- After a failed or interrupted apply the rollback always rewrites the store and restarts the agent, at the cost of one agent restart even when nothing was persisted. Whether the restart also discards a change the agent had not yet persisted is not observed and is for M2 to check.
 
 Proposed by the assistant; user to confirm.
 
