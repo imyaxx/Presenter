@@ -55,6 +55,20 @@ final class FileManagerFileStoreTests {
     }
 
     @Test
+    func repeatedFlushedWritesInAFreshDirectoryLeaveOnlyTheTarget() async throws {
+        let freshDirectory = directory.appending(path: "fresh")
+        let url = freshDirectory.appending(path: "session.json")
+
+        for generation in 1...5 {
+            try await store.write(Data("generation \(generation)".utf8), to: url)
+        }
+
+        #expect(try await store.read(url) == Data("generation 5".utf8))
+        let entries = try FileManager.default.contentsOfDirectory(atPath: freshDirectory.path(percentEncoded: false))
+        #expect(entries == ["session.json"])
+    }
+
+    @Test
     func removeDeletesFileAndSucceedsWhenAbsent() async throws {
         let url = directory.appending(path: "session.json")
         try await store.write(Data("x".utf8), to: url)
