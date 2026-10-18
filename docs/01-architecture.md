@@ -31,24 +31,35 @@ Allowed imports:
 
 ## ModeKit domain model
 
+Implemented in `Packages/ModeKit/Sources/ModeKit/Model/` (M1, branch `feat/modekit-models-and-persistence`). All types are public value types, `Codable`, `Hashable` and `Sendable`:
+
 ```swift
-public struct Profile: Codable, Identifiable, Sendable {
+public struct Profile {
     public let id: UUID
-    public var name: String
-    public var steps: [ProfileStep]        // ordered, each step typed
-    public var autoExit: Duration?         // nil = off
+    public let name: String                // 1...60 characters after trimming, stored trimmed
+    public let steps: [ProfileStep]        // array order is the apply order; each kind at most once
+    public let autoExit: AutoExit?         // nil = off
 }
 
-public enum ProfileStep: Codable, Sendable {
+public enum ProfileStep {
     case hideDesktopIcons
     case hideDock
     case hideMenuBar
     case hideApps(exclusions: Set<BundleIdentifier>)
     case wallpaper(WallpaperChoice, displays: DisplaySelection)
+    var actionIdentifier: ActionIdentifier
 }
+
+public enum WallpaperChoice { case solidColor(SolidColor), image(URL) }        // file URL, stored as a path
+public struct SolidColor { red, green, blue: UInt8 }                           // 8-bit sRGB
+public enum DisplaySelection { case allDisplays, specific(Set<DisplayIdentifier>) }   // specific: non-empty
+public struct DisplayIdentifier { uuid: UUID }
+public struct BundleIdentifier { rawValue: String }   // strict reverse DNS, validated on init and decode
+public struct AutoExit { seconds: Int; duration: Duration }   // 60...86 400 whole seconds
+public enum ActionIdentifier: String { desktopIcons, dock, menuBar, hideApps, wallpaper }
 ```
 
-Exact shapes are decided in the M1 task and must stay within these ideas: typed steps, no stringly-typed dictionaries, `Codable` with an explicit schema version.
+`ProfileValidation` holds every rule and throws `ProfileValidationError`. `BundleIdentifier` and `AutoExit` cannot hold an invalid value. The JSON format and the rules are in `docs/12-data-formats.md`. Focus is not a step yet; it arrives with its action if ADR-013 is confirmed.
 
 ## Action contract
 
@@ -111,7 +122,7 @@ Concurrency: the controller serializes all transitions. A second trigger during 
 | Preferences (appearance, language, launch at login, hotkey) | `UserDefaults` | typed wrapper, one key enum |
 | Generated solid-color wallpapers | `~/Library/Application Support/<BundleID>/wallpapers/` | PNG |
 
-Schema migration: each file carries `schemaVersion`. Unknown future version = refuse to overwrite, show an error, keep the file.
+Schema migration: each file carries `schemaVersion`. Unknown future version = refuse to overwrite, show an error, keep the file. An unreadable profiles file is kept as `profiles.json.corrupt` before the next save; an unreadable session file is never overwritten and only `clearSession` removes it (ADR-030). Implemented by `ProfileStore` and `SessionStore` (actors whose file operations run one after another) over one shared policy type; the directory is injected by the composition root. Formats and full policy: `docs/12-data-formats.md`.
 
 ## Error policy
 
@@ -121,7 +132,7 @@ ModeKit uses Swift `throws` with typed error enums per component (`SessionError`
 
 Constructor injection. `AppEnvironment` in `Application/` builds the object graph once at launch and passes protocols down. No service locators, no static shared instances.
 
-## System ports (protocols in ModeKit, implementations in Platform)
+## System ports (protocols in ModeKit, implementations in Platform except `FileStore`)
 
 | Port | Real implementation |
 |---|---|
@@ -130,7 +141,7 @@ Constructor injection. `AppEnvironment` in `Application/` builds the object grap
 | `AppleScriptRunner` | `NSAppleScript` / `OSAScript` |
 | `WorkspaceAdapter` | `NSWorkspace`, `NSRunningApplication`, `NSScreen` |
 | `Clock` | `ContinuousClock` wrapper for timer tests |
-| `FileStore` | `FileManager` with atomic writes |
+| `FileStore` | `FileManagerFileStore` in ModeKit (Foundation only, ADR-029): temporary file, `fsync`, `rename(2)`. Implemented in M1; the other ports arrive with the branch that first needs them |
 | `DistributedNotifier` | `DistributedNotificationCenter` post; applies menu bar changes live (ADR-026) |
 
 ## Logging
