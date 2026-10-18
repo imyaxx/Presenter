@@ -8,6 +8,8 @@ Verification record format (append to the spike log at the bottom): macOS versio
 
 - App is **not sandboxed** (ADR-006). Hardened runtime enabled for notarization.
 - Sending Apple Events to System Events from a hardened-runtime app requires both `NSAppleEventsUsageDescription` in `Info.plist` and the `com.apple.security.automation.apple-events` entitlement (verified, S4). Without either one there is no prompt: the call fails at once with error -1743, "Not authorized to send Apple events to System Events." With both, the user is prompted once per target app (Automation permission). An unanswered prompt makes the call fail after 120 s with error -1712, "AppleEvent timed out.", and the prompt closes. Permission is reset per bundle id with `tccutil reset AppleEvents <bundle id>`.
+- The app carries both since `feat/platform-adapters`. The entitlement is in `Presenter.entitlements`; the usage description comes from `project.yml` and is localized in English and Russian through `InfoPlist.xcstrings`. Both were verified on the built app, but have not yet been exercised against System Events.
+- `NSAppleScriptRunner` runs scripts on one dedicated background thread, never on the main thread (ADR-040). The SDK header states no thread requirement. Whether this works for Apple events to System Events and with the Automation prompt is `UNVERIFIED` (see "Verified in M2 branch 1").
 - No Accessibility permission should be required. If a design needs it, stop and record a decision first.
 - The global hotkey uses `KeyboardShortcuts` 3.1.0 (MIT, revision `772133d9dbe800fdac0473226822994c5c162c58`, released 2026-09-11, repository not archived). On macOS 27.0 it registered and fired with no Accessibility or Input Monitoring prompt, ad-hoc signed with and without the hardened runtime, including while another app was frontmost in full screen (verified, S6). macOS 14 and 15 are untested. The package persists the shortcut in the app's own defaults domain as `KeyboardShortcuts_<name>`.
 
@@ -17,14 +19,14 @@ Verification record format (append to the spike log at the bottom): macOS versio
 Mechanism (verified, S5): `defaults write com.apple.finder CreateDesktop -bool false`, then `killall Finder`. launchd relaunches Finder by itself; no other restart is needed. Restore: write the captured value, or `defaults delete com.apple.finder CreateDesktop` if the key was absent, then `killall Finder`.
 Notes: capture must distinguish "key absent" from "true"; on the test Mac the key was absent by default, and deleting it restored the domain exactly (S5). Measured: icons gone 0.10 and 0.12 s after the command (2 runs), back after 0.30 to 0.59 s (5 runs) (S5). Two open Finder windows reopened on the same folders (S5, one run); other window states (minimized, full screen, on another Space, unsaved Get Info panels) are `UNVERIFIED`, not tested in M0. ADR-010 accepts the Finder flicker.
 Run through `ProcessRunner` with an argv array.
-Implemented in ModeKit as `DesktopIconsAction` against the `DefaultsStore` and `ProcessRunner` ports (M1). In-app `CFPreferences` access to the `com.apple.finder` domain is `UNVERIFIED`: S1 verified `CFPreferences` only for the Control Center and global domains; the M2 adapter branch must verify it or use the `defaults` tool through `ProcessRunner`. `killall` exit codes are taken from `man killall` on macOS 27.0 ("exits 0 if some processes have been found and signalled successfully. Otherwise, a status of 1 will be returned."), not observed: exit 1 (no Finder, or not signalled) is treated as success (ADR-035), and exit 1 on a running system is `UNVERIFIED`.
+Implemented in ModeKit as `DesktopIconsAction` against the `DefaultsStore` and `ProcessRunner` ports (M1). In-app `CFPreferences` access to the `com.apple.finder` domain is `UNVERIFIED`: S1 verified `CFPreferences` only for the Control Center and global domains; the M2 adapter `CFPreferencesDefaultsStore` uses `CFPreferences` for it; `feat/adapter-check-tool` verifies it, and if it fails the replacement is the `defaults` tool through `ProcessRunner`. `killall` exit codes are taken from `man killall` on macOS 27.0 ("exits 0 if some processes have been found and signalled successfully. Otherwise, a status of 1 will be returned."), not observed: exit 1 (no Finder, or not signalled) is treated as success (ADR-035), and exit 1 on a running system is `UNVERIFIED`.
 
 ### Dock auto-hide (global)
 Mechanism A (verified, S4): System Events AppleScript, `tell application "System Events" to set autohide of dock preferences to true`. Applies immediately with the normal slide animation, no Dock restart (same Dock PID), call time 0.097 to 0.231 s once permission is granted. It writes `com.apple.dock autohide` at once. Needs Automation permission for System Events (see Platform constraints).
 Mechanism B (verified, S4): `defaults write com.apple.dock autohide -bool <value>` plus `killall Dock`. Needs no permission. The Dock visibly reloads (blinks); new Dock process in 0.09 to 0.30 s.
 Key absent (verified, S4): an absent `autohide` key means the Dock is always shown, and System Events reports `false`. A can only write `true` or `false`, so restoring an absent key with A leaves an explicit `autohide = 0`. Following A's write of `false` with `defaults delete com.apple.dock autohide` restores the absent key exactly, without a Dock restart.
 Decision: A, plus `defaults delete` when the captured key was absent (ADR-025).
-Implemented in ModeKit as `DockAction` against the `AppleScriptRunner` and `DefaultsStore` ports (M1). In-app `CFPreferences` access to the `com.apple.dock` domain is `UNVERIFIED`: S1 verified `CFPreferences` only for the Control Center and global domains; the M2 adapter branch must verify it or use the `defaults` tool through `ProcessRunner`.
+Implemented in ModeKit as `DockAction` against the `AppleScriptRunner` and `DefaultsStore` ports (M1). In-app `CFPreferences` access to the `com.apple.dock` domain is `UNVERIFIED`: S1 verified `CFPreferences` only for the Control Center and global domains; the M2 adapter `CFPreferencesDefaultsStore` uses `CFPreferences` for it; `feat/adapter-check-tool` verifies it, and if it fails the replacement is the `defaults` tool through `ProcessRunner`.
 
 ### Menu bar auto-hide (global)
 Mechanism (verified, S1): System Settings > Control Center > "Automatically hide and show the menu bar" is stored in three keys:
@@ -53,6 +55,20 @@ Implemented in ModeKit as `HideAppsAction` and `HideAppsRestorer` against the `W
 Apply (verified, S2): `NSWorkspace.shared.setDesktopImageURL(_:for:options:)` with a generated solid-color PNG works, but only for the **current Space** of that screen. Other Spaces keep their wallpaper.
 Capture through `desktopImageURL(for:)` and `desktopImageOptions(for:)` is **not reliable** (verified, S2). For a color wallpaper and for a dynamic wallpaper (provider `com.apple.wallpaper.choice.sequoia`) the API reports `file:///System/Library/CoreServices/DefaultDesktop.heic` with empty options, and restoring that puts up the default macOS image. For a still image file it reports the file URL and options; restoring it looks identical, but the stored entry changes from `linked` to `individual` and keeps the temporary image's fill color.
 Capture source (verified, S2): `~/Library/Application Support/com.apple.wallpaper/Store/Index.plist`. It holds a `Displays` entry per display, keyed by the UUID from `CGDisplayCreateUUIDFromDisplayID`, and a `Spaces` entry per Space UUID plus an empty-string key, each with a provider (`com.apple.wallpaper.choice.color`, `.image`, `.sequoia`, ...), a configuration and encoded options as nested binary plists. Copying a captured `Index.plist` back and running `killall WallpaperAgent` restored a custom color and a dynamic wallpaper exactly, on both Spaces. Side effect: on relaunch `WallpaperAgent` added about 70 Aerial thumbnails to `aerials/thumbnails/` (cache). The store also keeps entries for Spaces that no longer exist and gains one per new Space or full-screen app (36 to 41 during this session), so restoring a whole-file copy also drops entries created during the session.
+Store structure, machine-observed read-only on 2026-10-18. Key names and value kinds only, from the live store of the development Mac (one display, a custom color, 44 Space entries) and the S2 copies.
+- The top level is a dictionary with `AllSpacesAndDisplays` (string), `Displays` (dictionary keyed by display UUID), `Spaces` (dictionary keyed by Space UUID plus the empty-string key) and `SystemDefault` (dictionary).
+- An entry has a `Type` string (`linked` or `individual`). A `linked` entry has a `Linked` dictionary. An `individual` entry, seen only in the S2 copy with a dynamic wallpaper, has `Desktop` and `Idle` dictionaries instead.
+- Each of `Linked`, `Desktop` and `Idle` holds:
+  - `Content`, with `Choices` (an array of dictionaries with `Configuration` data, `Files` array and `Provider` string), `EncodedOptionValues` data and `Shuffle` string;
+  - `LastSet` and `LastUse` dates.
+- `Configuration` is a nested binary property list for color and image choices: `type` (`customColor`, `systemColor`, `imageFile`), plus `url.relative` for an image. For `com.apple.wallpaper.choice.sequoia` it is empty data.
+- `EncodedOptionValues` is a nested binary property list with `values`, holding the color components and a nested color-space property list, and, for the dynamic wallpaper, `placement`.
+- Each entry of `Spaces` holds `Default` and `Displays`, shaped like the entries above.
+
+Not observed as a property list: the store right after an apply of a custom image or a solid color. S2 kept only a text dump of that state, which shows `individual` entries with provider `com.apple.wallpaper.choice.image` under `Displays[<display UUID>]` and `Spaces[""]`. The check tool observes that state under backup, and may adjust the inspector (ADR-041).
+
+The M2 adapters exist since `feat/platform-adapters` (`AppKitWorkspaceAdapter`, `CoreGraphicsSolidColorImageRenderer`, `PropertyListWallpaperStoreInspector`, `SystemLocations`). Their real effects are verified by `feat/adapter-check-tool`. Until then the `UNVERIFIED` items and the M2 obligations below remain open, except that the renderer is implemented and its output verified, and the display mapping round trip is verified on one display.
+
 Stable display key: the `CGDisplayCreateUUIDFromDisplayID` UUID is the key the system itself uses in `Index.plist` (S2). Its stability across reboot and reconnection is `UNVERIFIED`, not testable in M0.
 `UNVERIFIED`, not tested in M0: a second display (only one available); applying a wallpaper to all Spaces at once (no tested mechanism: the API changes only the current Space, and writing a synthesized `Index.plist` was not tested); displays connecting or disconnecting mid-session; the lock screen; behavior on macOS 14 and 15. `Index.plist` and the `WallpaperAgent` restart are undocumented and may change between macOS releases (ADR-027).
 Implemented in ModeKit as `WallpaperAction` and `WallpaperRestorer` (M1, ADR-038, ADR-039), against these ports: `WorkspaceAdapter` (`connectedDisplays`, `setDesktopImage` on the current Space), `SolidColorImageRenderer`, `FileStore` (store bytes and `solid-rrggbb.png` in the generated images directory), `SessionClock`, `WallpaperStoreInspector` and `ProcessRunner`. ModeKit never parses `Index.plist`, never resolves the store path (injected as `WallpaperLocations`) and never uses `desktopImageURL`. Apply fingerprints the store before any change, sets the image, then polls the store every 100 ms, up to 50 times, until the fingerprint changes; otherwise it fails with `storeDidNotChange`. That includes the case where the target already is the current wallpaper. Restore writes the captured bytes atomically and runs `/usr/bin/killall WallpaperAgent` with a 10 s timeout. After a completed apply it does neither when the store already equals the snapshot, or when its fingerprint no longer equals the applied one (the user changed the wallpaper). After an interrupted apply (`applied: nil`, including the rollback of `storeDidNotChange`) it always writes and restarts, even when the bytes are equal: the image may be on screen before the agent persists it, and a late persist must be overwritten. Whether restarting the agent discards a change it has not yet persisted is `UNVERIFIED`.
@@ -63,14 +79,17 @@ Implemented in ModeKit as `WallpaperAction` and `WallpaperRestorer` (M1, ADR-038
 - `killall WallpaperAgent` exit 1, read from the manual (ADR-035), not observed.
 - Several Spaces, a full-screen Space and a second display.
 - That `desktopImageURL` is needed nowhere.
-Obligations for the M2 adapter branch (`feat/platform-adapters`):
-- Inspect the real `Index.plist` read-only and implement `WallpaperStoreInspector` with sanitized fixtures.
-- Measure the real latency between `setDesktopImageURL` and the store change, and recalibrate the polling constants.
-- Verify that an atomic replace of `Index.plist` followed by `killall WallpaperAgent` restores correctly.
-- Implement `SolidColorImageRenderer`.
-- Map each `NSScreen` to its `CGDisplayCreateUUIDFromDisplayID` UUID.
-- Test a second display, several Spaces and a full-screen Space.
-- Verify that `desktopImageURL` is not needed anywhere.
+M2 obligations for the wallpaper:
+- Done in `feat/platform-adapters`:
+  - The real `Index.plist` was inspected read-only, and `PropertyListWallpaperStoreInspector` is implemented with sanitized fixtures (ADR-041).
+  - `SolidColorImageRenderer` is implemented.
+  - Each `NSScreen` is mapped to its `CGDisplayCreateUUIDFromDisplayID` UUID (`DisplayIdentifierMapping`).
+  - `desktopImageURL` is used nowhere in the code.
+- Left for `feat/adapter-check-tool`:
+  - Observe the store after a real apply, and check the inspector against it.
+  - Measure the latency between `setDesktopImageURL` and the store change, and recalibrate the polling constants.
+  - Verify that an atomic replace of `Index.plist` followed by `killall WallpaperAgent` restores correctly, and whether the restart discards an unpersisted change.
+  - Test a second display, several Spaces and a full-screen Space.
 
 ### Focus / Do Not Disturb (ADR-013, proposed)
 No public API toggles Focus (Apple Developer Forums thread 729475, from a web search on 2026-10-17; not re-checked). Mechanism (verified, S3): user-created Shortcuts run with `shortcuts run "<name>"` through `ProcessRunner`. "Set Focus: Turn Do Not Disturb On until Turned Off" and "Set Focus: Turn Do Not Disturb Off" each take 0.14 to 0.18 s (one Off outlier at 1.55 s) with no prompt. A missing Shortcut fails with exit 1 and "Couldn’t find shortcut" in 0.05 to 0.12 s.
@@ -79,6 +98,40 @@ Distribution (blocked, S3): shipping a prebuilt `.shortcut` file was not possibl
 
 ## Launch at login
 `SMAppService.mainApp.register()` / `unregister()` (macOS 13+). Status read from `SMAppService.mainApp.status`; the UI reflects the real status, including `requiresApproval`. `UNVERIFIED`: not covered by an M0 spike; verify in M2.
+
+## Verified in M2 branch 1 (`feat/platform-adapters`)
+
+Machine-observed on the development Mac, macOS 27.0, Xcode 27.1, on 2026-10-18, by the app's unit tests and by read-only commands. No real setting was changed (ADR-040). Personal data is left out: no path, user name, display UUID or store content.
+
+- **Display UUID mapping.** One `NSScreen` was connected. Its `NSScreenNumber`, taken through `CGDirectDisplayID` and `CGDisplayCreateUUIDFromDisplayID`, gave a UUID, and the same mapping found the same `NSScreen` again (round trip).
+- **Process runner.**
+  - `/usr/bin/true` exited 0 and `/usr/bin/false` exited 1. A missing executable failed at launch.
+  - Arguments containing spaces, quotes, `;`, `$HOME` and `*` reached `/bin/test` verbatim.
+  - `/bin/sleep` with a 300 ms timeout ended about 0.34 s after the call started, after SIGTERM.
+  - A `/bin/sh` loop that ignores SIGTERM was killed with SIGKILL after the 2 s grace period.
+  - Cancelling the caller stopped the child.
+  - Afterwards, `pgrep -f` found none of these processes.
+- **AppleScript error mapping, off the main thread.** These ran on the runner's dedicated background thread:
+  - `error number -1743` mapped to `notAuthorized`, `error number -1712` to `timedOut`, and `error "boom" number 42` to `failed(code: 42, message: "boom")`.
+  - A script that does not compile failed with `failed`.
+  - Two `delay 0.4` scripts issued at once took at least 0.8 s, so they did not overlap.
+  - The watchdog returned within 1.5 s for `delay 2` with a 300 ms timeout.
+  - None of these scripts sends an Apple event to another application.
+- **`CFPreferences` with a throwaway domain.**
+  - `true`, `false`, 0, 1, 3 and -2 round-tripped with their types; 0 and 1 stayed integers.
+  - A string and a floating-point value were rejected as unsupported.
+  - A value written by `/usr/bin/defaults write` from another process was read after `CFPreferencesSynchronize`.
+  - After the last key of a domain was removed and synchronized, cfprefsd rewrote the domain's plist file once, as an empty dictionary, 9.4 s and 10.9 s later in two runs, and then left it alone.
+- **Distributed notifications.** A private name posted with `deliverImmediately: true` reached an observer for that name in the same process. In S1, an observer for all names (`forName: nil`) received nothing.
+- **Renderer output.** `CoreGraphicsSolidColorImageRenderer` produced a PNG (signature `89 50 4E 47 0D 0A 1A 0A`), 64 x 64 pixels. Decoded with ImageIO and drawn into an sRGB bitmap, it gave the exact channel values for black, white, pure red, pure green, pure blue, `#151515` and `#1E90FF`.
+- **Wallpaper store, untouched by the tests.** The live `Index.plist` was only read. Its SHA-256 differed between the start and the end of the branch's test runs. Its modification time was a single moment during one test run, and its newest timestamps were the `LastUse` values at that same second. No code in this branch writes the store. The most likely cause is `WallpaperAgent` refreshing `LastUse` by itself, which agrees with S2's finding that the store differs only in `LastUse` across an agent restart, but it is not attributed with certainty. It supports treating `LastUse` as volatile (ADR-041).
+- **Property lists.** `PropertyListSerialization` accepts the bare bytes `bplist00` as an old-style text string, not as an error.
+- **Built app.** With the commands quoted in the branch's PR:
+  - The built `Info.plist` holds `NSAppleEventsUsageDescription`.
+  - `codesign -d --entitlements` lists `com.apple.security.automation.apple-events = true`.
+  - `en.lproj/InfoPlist.strings` and `ru.lproj/InfoPlist.strings` hold the English and Russian descriptions.
+  - `codesign -dvv` still shows `flags=0x2(adhoc)`: the ad-hoc build has no hardened runtime flag (see Verified build facts).
+- **`NSAppleScript` threading, from local evidence.** The SDK header (`NSAppleScript.h`, macOS 27.0 SDK) states no thread requirement and carries no main-actor annotation. The S4 throwaway app ran its scripts on the main thread only. So whether `NSAppleScript` sends Apple events to System Events correctly from a background thread, including when the Automation prompt is shown, is `UNVERIFIED`; the check tool exercises it.
 
 ## Spikes (M0)
 

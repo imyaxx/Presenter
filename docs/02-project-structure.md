@@ -16,7 +16,8 @@
 │   ├── workflows/ci.yml
 │   └── pull_request_template.md
 ├── docs/
-├── Scripts/                     # small, documented shell scripts called by Makefile
+├── Scripts/                     # small, documented scripts: shell scripts called by Makefile, and
+│                                # sanitize-wallpaper-store.swift (run by hand to make test fixtures)
 ├── Packages/
 │   └── ModeKit/                 # domain core, Foundation only
 │       ├── Package.swift
@@ -61,14 +62,20 @@
 │                                # FakeSolidColorImageRenderer, StandardActionsHarness)
 └── App/
     ├── Sources/
-    │   ├── Application/         # @main, AppDelegate, AppEnvironment (composition root)
-    │   ├── Platform/            # real implementations of ModeKit ports
-    │   │   ├── Defaults/
-    │   │   ├── Process/
-    │   │   ├── AppleScript/
-    │   │   ├── Workspace/
-    │   │   ├── Hotkey/
-    │   │   └── LoginItem/
+    │   ├── Application/         # @main, BundleMetadata, PlatformComposition (+Error): the composition root
+    │   ├── Platform/            # real implementations of ModeKit ports, named by mechanism (ADR-040)
+    │   │   ├── Defaults/        # CFPreferencesDefaultsStore
+    │   │   ├── Process/         # FoundationProcessRunner
+    │   │   ├── AppleScript/     # NSAppleScriptRunner, AppleScriptThread
+    │   │   ├── Workspace/       # AppKitWorkspaceAdapter, DisplayIdentifierMapping, WorkspaceError
+    │   │   ├── Notifications/   # DistributedNotificationCenterNotifier
+    │   │   ├── Rendering/       # CoreGraphicsSolidColorImageRenderer, RenderingError
+    │   │   ├── Wallpaper/       # PropertyListWallpaperStoreInspector, PropertyListValue (ADR-041)
+    │   │   ├── Logging/         # OSSessionLogger, SessionLogMessage
+    │   │   ├── Locations/       # SystemLocations
+    │   │   ├── Concurrency/     # CompletionSignal (one-shot value for callback-to-async bridging)
+    │   │   ├── Hotkey/          # later M2 branch
+    │   │   └── LoginItem/       # later M2 branch
     │   ├── Features/            # one self-contained folder per feature
     │   │   ├── MenuBar/         # MenuBarView, MenuBarViewModel
     │   │   ├── Hud/
@@ -86,8 +93,11 @@
     ├── Resources/
     │   ├── Assets.xcassets      # colors (light/dark variants), app icon, menu-bar icons
     │   ├── Localizable.xcstrings   # String Catalog: en (source), ru
-    │   └── Presenter.entitlements   # Info.plist is generated from project.yml build settings
-    └── Tests/                   # view-model tests for the app target
+    │   ├── InfoPlist.xcstrings     # Info.plist strings (NSAppleEventsUsageDescription): en, ru
+    │   └── Presenter.entitlements   # apple-events entitlement; Info.plist is generated from project.yml build settings
+    └── Tests/                   # app target tests, mirroring Sources: Application/, Platform/<Mechanism>/,
+                                 # LocalizationCatalogTests; Fixtures/WallpaperStore/ holds sanitized wallpaper
+                                 # stores made with Scripts/sanitize-wallpaper-store.swift (ADR-041)
 ```
 
 ## Dependency rules (enforced in review)

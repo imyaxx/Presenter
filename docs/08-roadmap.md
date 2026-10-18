@@ -25,8 +25,9 @@ Acceptance: all mandatory scenarios in `docs/06-testing.md` pass; ModeKit covera
 
 ## M2: app shell
 
-Branches: `feat/platform-adapters`, `feat/menubar-shell`, `feat/hud`, `feat/hotkey`, `feat/design-system-foundation`, `feat/theme-controller`.
-First branch `feat/platform-adapters` carries the obligations recorded in `docs/STATUS.md` and `docs/07-macos-integration.md`: Automation entitlement and usage description, in-app `CFPreferences` for the Finder and Dock domains, verification of `NSRunningApplication.hide()`, and the wallpaper inspector, polling calibration, atomic-replace restore, renderer and display mapping.
+Branches: `feat/platform-adapters`, `feat/adapter-check-tool`, `feat/menubar-shell`, `feat/hud`, `feat/hotkey`, `feat/design-system-foundation`, `feat/theme-controller`.
+First branch `feat/platform-adapters` (done, pending merge): the real adapter for every ModeKit port, the composition root, the Automation entitlement and the localized usage description. It is built and tested under safety rules: no test changes a real setting (ADR-040).
+`feat/adapter-check-tool`: a checked-in developer tool that runs the real adapters through the real controller under a backup and diff protocol, and verifies the unverified items (list in `docs/STATUS.md`).
 Deliverables: real platform adapters; menu-bar extra with the three icon states; popover with profile list and activate/deactivate; HUD; hotkey registration; launch at login; design tokens, theme controller (System/Light/Dark), L10n infrastructure with EN and RU; design pass confirming accent and icon set.
 Acceptance: end-to-end activate and deactivate of a hand-written `profiles.json` profile using real system effects; core session and per-action manual QA checklists pass; crash and reboot recovery verified manually.
 
