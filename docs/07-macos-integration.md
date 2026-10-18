@@ -55,6 +55,22 @@ Capture through `desktopImageURL(for:)` and `desktopImageOptions(for:)` is **not
 Capture source (verified, S2): `~/Library/Application Support/com.apple.wallpaper/Store/Index.plist`. It holds a `Displays` entry per display, keyed by the UUID from `CGDisplayCreateUUIDFromDisplayID`, and a `Spaces` entry per Space UUID plus an empty-string key, each with a provider (`com.apple.wallpaper.choice.color`, `.image`, `.sequoia`, ...), a configuration and encoded options as nested binary plists. Copying a captured `Index.plist` back and running `killall WallpaperAgent` restored a custom color and a dynamic wallpaper exactly, on both Spaces. Side effect: on relaunch `WallpaperAgent` added about 70 Aerial thumbnails to `aerials/thumbnails/` (cache). The store also keeps entries for Spaces that no longer exist and gains one per new Space or full-screen app (36 to 41 during this session), so restoring a whole-file copy also drops entries created during the session.
 Stable display key: the `CGDisplayCreateUUIDFromDisplayID` UUID is the key the system itself uses in `Index.plist` (S2). Its stability across reboot and reconnection is `UNVERIFIED`, not testable in M0.
 `UNVERIFIED`, not tested in M0: a second display (only one available); applying a wallpaper to all Spaces at once (no tested mechanism: the API changes only the current Space, and writing a synthesized `Index.plist` was not tested); displays connecting or disconnecting mid-session; the lock screen; behavior on macOS 14 and 15. `Index.plist` and the `WallpaperAgent` restart are undocumented and may change between macOS releases (ADR-027).
+Implemented in ModeKit as `WallpaperAction` and `WallpaperRestorer` (M1, ADR-038, ADR-039), against these ports: `WorkspaceAdapter` (`connectedDisplays`, `setDesktopImage` on the current Space), `SolidColorImageRenderer`, `FileStore` (store bytes and `solid-rrggbb.png` in the generated images directory), `SessionClock`, `WallpaperStoreInspector` and `ProcessRunner`. ModeKit never parses `Index.plist`, never resolves the store path (injected as `WallpaperLocations`) and never uses `desktopImageURL`. Apply fingerprints the store before any change, sets the image, then polls the store every 100 ms, up to 50 times, until the fingerprint changes; otherwise it fails with `storeDidNotChange`. That includes the case where the target already is the current wallpaper. Restore writes the captured bytes atomically and runs `/usr/bin/killall WallpaperAgent` with a 10 s timeout, unless the store already equals the snapshot or its fingerprint no longer equals the applied one.
+`UNVERIFIED` for this implementation, none of it run on a real system:
+- The store format as the inspector will see it, including which fields are volatile.
+- The latency between `setDesktopImageURL` and the store change. The 100 ms interval and 50 polls are engineering guesses, not measurements.
+- Restoring through an atomic replace of `Index.plist` (temporary file and `rename(2)`, as `FileManagerFileStore` does) followed by `killall WallpaperAgent`. S2 used a plain copy.
+- `killall WallpaperAgent` exit 1, read from the manual (ADR-035), not observed.
+- Several Spaces, a full-screen Space and a second display.
+- That `desktopImageURL` is needed nowhere.
+Obligations for the M2 adapter branch (`feat/platform-adapters`):
+- Inspect the real `Index.plist` read-only and implement `WallpaperStoreInspector` with sanitized fixtures.
+- Measure the real latency between `setDesktopImageURL` and the store change, and recalibrate the polling constants.
+- Verify that an atomic replace of `Index.plist` followed by `killall WallpaperAgent` restores correctly.
+- Implement `SolidColorImageRenderer`.
+- Map each `NSScreen` to its `CGDisplayCreateUUIDFromDisplayID` UUID.
+- Test a second display, several Spaces and a full-screen Space.
+- Verify that `desktopImageURL` is not needed anywhere.
 
 ### Focus / Do Not Disturb (ADR-013, proposed)
 No public API toggles Focus (Apple Developer Forums thread 729475, from a web search on 2026-10-17; not re-checked). Mechanism (verified, S3): user-created Shortcuts run with `shortcuts run "<name>"` through `ProcessRunner`. "Set Focus: Turn Do Not Disturb On until Turned Off" and "Set Focus: Turn Do Not Disturb Off" each take 0.14 to 0.18 s (one Off outlier at 1.55 s) with no prompt. A missing Shortcut fails with exit 1 and "Couldn’t find shortcut" in 0.05 to 0.12 s.
