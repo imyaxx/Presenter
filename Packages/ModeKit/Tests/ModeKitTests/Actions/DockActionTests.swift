@@ -152,6 +152,17 @@ struct DockActionTests {
         #expect(await fixture.defaults.values.isEmpty)
     }
 
+    @Test
+    func nonBooleanCapturedValueIsWrittenBackWithItsTypeAfterTheScript() async throws {
+        let fixture = makeFixture(.integer(1))
+        let applied = try await fixture.action.apply()
+
+        _ = try await fixture.action.restore(Snapshot(autohide: .integer(1)), expecting: applied)
+
+        #expect(await fixture.scripts.scripts == [Self.enable, Self.disable])
+        #expect(await fixture.defaults.values == [Self.key: .integer(1)])
+    }
+
     @Test(arguments: [AppleScriptError.notAuthorized, .timedOut])
     func scriptFailureFailsTheRestoreAndLeavesTheKey(error: AppleScriptError) async {
         let fixture = makeFixture(.bool(true))
