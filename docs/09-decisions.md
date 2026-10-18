@@ -112,6 +112,52 @@ Consequence: a macOS format change makes apply fail before any change, instead o
 
 Proposed by the assistant; user to confirm.
 
+**ADR-040 Platform adapter conventions.** Context: M2 adds the first code that touches AppKit and the real system. Unit tests run on the developer's Mac and in CI, and the app must never block the main thread on an external wait.
+
+Decision:
+- **Layout.** One file per type under `App/Sources/Platform/<Mechanism>/`, named by mechanism (`CFPreferencesDefaultsStore`, `FoundationProcessRunner`, `NSAppleScriptRunner`, `AppKitWorkspaceAdapter`, `DistributedNotificationCenterNotifier`, `CoreGraphicsSolidColorImageRenderer`, `PropertyListWallpaperStoreInspector`, `OSSessionLogger`, `SystemLocations`). `App/Sources/Application/PlatformComposition.swift` is the only place that builds them; `Features/` never refers to `Platform/`.
+- **AppKit.** AppKit calls hop to the main actor inside the async methods.
+- **Waiting.** Callback-style completion is bridged through `CompletionSignal`, a cancellation-aware one-shot value, without `DispatchQueue`.
+- **Processes.** `Process` with an absolute executable, an argv array, no shell, null standard streams and a fixed minimal environment. On timeout or cancellation the runner sends SIGTERM, then SIGKILL after 2 s, and returns only after the child has exited.
+- **AppleScript.** Scripts run one at a time on one dedicated background `Thread`. The timeout is a watchdog that throws `timedOut` and discards a late result. A cancelled caller gets `CancellationError` while the script finishes on its thread.
+- **Preferences.** `CFPreferences` for the current user and any host; `NSGlobalDomain` maps to `kCFPreferencesAnyApplication`. `CFPreferencesSynchronize` runs before every read and after every write or removal. Values are mapped by Core Foundation type identifier.
+- **Safety rules for tests.** No test writes a real preferences domain, runs `killall`, posts the menu bar notification, hides or unhides an application, sets a desktop image, sends an Apple event to another application or writes the wallpaper store. Allowed are a throwaway domain `dev.imyaxx.presenter.tests.<UUID>` removed after the suite, harmless commands, scripts that need no permission, a private notification name, temporary files and read-only observation of the live system.
+
+Consequences:
+- The adapters' real effects are verified by a separate check tool (`feat/adapter-check-tool`), not by unit tests.
+- A blocked script holds only its own thread, and later scripts wait behind it.
+- The defaults suite waits once, about 10 s, for cfprefsd's delayed rewrite of the emptied throwaway domain so it can delete the file.
+
+Proposed by the assistant; user to confirm.
+
+**ADR-041 Wallpaper store fingerprint.** Context: ADR-039 keeps the store format behind `WallpaperStoreInspector`. The real `Index.plist` was inspected read-only on the development Mac, and in the S2 copies (docs/07).
+
+Decision: `PropertyListWallpaperStoreInspector` computes the SHA-256 of a canonical text covering two parts of the store:
+- `Displays`, every display entry;
+- `Spaces[""]`, the entry for all Spaces; when it is absent, a marker is used instead.
+
+S2 observed `setDesktopImageURL` changing these two parts. The canonical text:
+- decodes nested binary property lists recursively;
+- sorts dictionary keys and length-prefixes strings;
+- tells booleans, integers and reals apart by Core Foundation type;
+- leaves out `LastUse` and `LastSet` at every depth.
+
+These are left out of the fingerprint: individual Space UUID entries (so a Space created during a session is not a change by the user), `SystemDefault` and `AllSpacesAndDisplays`.
+
+The inspector fails closed, throwing `unrecognizedFormat`, when:
+- the data is not a property list;
+- the top level is not a dictionary with `Displays` and `Spaces` dictionaries;
+- `Spaces[""]` is present but is not a dictionary.
+
+Tests use fixtures sanitized by `Scripts/sanitize-wallpaper-store.swift`, which replaces UUIDs, paths, the user name and dates.
+
+Consequences:
+- Timestamps are ignored, so re-selecting the same wallpaper is not a change. That case still fails apply with `storeDidNotChange` (ADR-038).
+- A change on an individual Space entry is not detected; the whole-file restore reverts it.
+- The store right after an apply of a custom image or a solid color has not been seen as a property list. The check tool observes it under backup and may adjust the parts or the volatile keys.
+
+Proposed by the assistant; user to confirm.
+
 ## Open
 
 **ADR-013 Focus / Do Not Disturb.** No public API. Only path is a user-installed Shortcut invoked with `shortcuts run`. Decision after spike S3: ship in v1.0, defer to v1.1, or drop. Update 2026-10-17 after S3, **proposed, user to confirm**: ship Focus in v1.0 as an optional action. Onboarding contains a manual setup guide: the user builds a "Set Focus: Do Not Disturb On" Shortcut, an "Off" Shortcut and, optionally, a "Get Current Focus" Shortcut for capture. The Shortcut names are configurable. The app runs them with `shortcuts run`. Reason: S3 measured on and off at 0.14 to 0.18 s and state reads at 0.11 to 0.15 s; a missing Shortcut fails fast with exit 1; reading the previous state works after a one-time "output 1 focus?" prompt, which blocks until answered and so needs a timeout. Distribution of a prebuilt `.shortcut` file is deferred until a dedicated project Apple Account exists (M5), because exporting for "Anyone" requires an iCloud sign-in. Proposed by the user in the M0 session.

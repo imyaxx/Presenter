@@ -45,6 +45,9 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: $(PRODUCT_DISPLAY_NAME)
         INFOPLIST_KEY_LSUIElement: YES
+        # Required with the apple-events entitlement before System Events can be asked (ADR-025); localized in
+        # App/Resources/InfoPlist.xcstrings.
+        INFOPLIST_KEY_NSAppleEventsUsageDescription: "Presenter controls the Dock's auto-hide setting through System Events while a profile is active."
         CODE_SIGN_ENTITLEMENTS: App/Resources/Presenter.entitlements
         ENABLE_HARDENED_RUNTIME: YES
         ENABLE_APP_SANDBOX: NO

@@ -47,9 +47,34 @@ For each action: capture reads current state; apply sets expected state; restore
 
 Specific edge cases to cover: Dock already auto-hidden; desktop icons already hidden; wallpaper file deleted between capture and restore; display disconnected between capture and restore; app in hide list not running; app quit during the session; user manually unhid an app during the session; Finder not running; the key absent at capture for desktop icons, Dock and menu bar (restore deletes, never writes a default); menu bar keys written explicitly by System Settings; Automation for System Events denied (-1743) or the prompt left unanswered (-1712 after 120 s); original wallpaper is a color or a dynamic wallpaper (restored from the store, not from `desktopImageURL`); a Space created during the session; Focus Shortcut missing (exit 1) or its state prompt unanswered (timeout).
 
+## Platform adapter tests
+
+The adapters' unit tests run on the developer's real Mac and in CI, so they follow strict safety rules (ADR-040).
+
+They never do any of the following:
+- write a real preferences domain (`com.apple.finder`, `com.apple.dock`, `com.apple.controlcenter`, `NSGlobalDomain`);
+- run `killall`;
+- post the menu bar notification;
+- hide or unhide an application;
+- call `setDesktopImageURL`;
+- send an Apple event to another application;
+- write the real wallpaper store.
+
+Allowed real I/O is limited to the following:
+- **Preferences:** a throwaway domain `dev.imyaxx.presenter.tests.<UUID>`, one per run of the defaults suite, with a fresh key per test (`ThrowawayPreferencesDomain`). A suite trait (`ThrowawayDomainCleanup`) removes its keys and its plist file after the suite. cfprefsd rewrites an emptied domain's file once, about 10 s after the last removal (machine-observed), so the cleanup waits up to 15 s for that rewrite and removes the file again.
+- **Processes:** harmless commands only, such as `/usr/bin/true`, `/usr/bin/false`, `/bin/test`, `/bin/sleep`, a `/bin/sh` loop that ignores SIGTERM, `/usr/bin/pgrep`, and `/usr/bin/defaults write` on the throwaway domain.
+- **AppleScript:** scripts that need no permission, such as `return 1 + 1`, `error number <n>` and `delay`.
+- **Notifications:** a private distributed notification name of the test's own.
+- **Files:** temporary files and directories.
+- **Reading the live system:** running applications and screens. The real wallpaper store is read only by hand, to design the inspector; tests use sanitized fixtures under `App/Tests/Fixtures/WallpaperStore`, and a test checks that they contain no `/Users/` path, no user name and no UUID other than a placeholder.
+
+The real effects (Finder, Dock, menu bar, hiding, the wallpaper) are verified by the check tool of the next branch under a backup and diff protocol, not by unit tests.
+
 ## Coverage targets
 
 ModeKit at least 90% line coverage with meaningful assertions (coverage is a smell detector, not a goal). App view models at least 80%. Platform adapters are covered by manual QA and spikes, plus unit tests for their pure parsing and mapping logic.
+
+New app code is measured with `xcodebuild test -enableCodeCoverage YES -resultBundlePath <path>` and `xcrun xccov view --report --json <path>`, at least 80%. Lines that change the real system are uncovered by design, and each branch lists them in its report. One example is the `setDesktopImageURL` call in `AppKitWorkspaceAdapter`. Defensive failure paths of system frameworks, such as a bitmap context or `CFPreferencesSynchronize` failing, are also uncovered.
 
 ## Manual QA checklists
 

@@ -25,7 +25,7 @@ Allowed imports:
 |---|---|
 | `ModeKit` | Foundation only |
 | `DesignSystem` | SwiftUI, AppKit |
-| `Platform` | `ModeKit`, AppKit, ServiceManagement, third-party hotkey package |
+| `Platform` | `ModeKit`, Foundation, AppKit, CoreGraphics, ImageIO, UniformTypeIdentifiers, CryptoKit, `os`, Darwin, ServiceManagement, the third-party hotkey package. One file per type under `App/Sources/Platform/<Mechanism>/`, named by mechanism; never imported by `Features` (ADR-040) |
 | `Features` | `ModeKit`, `DesignSystem`, SwiftUI. Never `Platform` directly; receives protocols |
 | `Application` (composition root) | Everything. The only place where concrete types are wired |
 
@@ -172,24 +172,36 @@ Constructor injection. `AppEnvironment` in `Application/` builds the object grap
 
 ## System ports (protocols in ModeKit, implementations in Platform except `FileStore` and `SessionClock`)
 
+Every port has a real implementation since M2 branch 1 (`feat/platform-adapters`); `App/Sources/Application/PlatformComposition.swift` is the only place that builds them (ADR-040). Their real system effects are verified by the next branch, `feat/adapter-check-tool`.
+
 | Port | Real implementation |
 |---|---|
-| `DefaultsStore` | Defined in ModeKit (`value(for:)`, `set(_:for:)`, `remove(_:)` over `DefaultsKey` and `DefaultsValue`; nil means absent, not false). M2 adapter: `CFPreferences` for other apps' domains, `UNVERIFIED` for `com.apple.finder` and `com.apple.dock` (docs/07). No timeout: local preference access (ADR-034) |
-| `ProcessRunner` | Defined in ModeKit: `run(ProcessCommand)` with an executable URL, an argv array (never a shell string) and a timeout; a nonzero exit is a `ProcessResult`, not an error. M2 adapter: `Process`, enforces the timeout (ADR-034) |
-| `AppleScriptRunner` | Defined in ModeKit: `run(AppleScript, timeout:)`; `AppleScript` is built from a `StaticString` only, so nothing can be interpolated. M2 adapter: `NSAppleScript`, enforces the timeout, maps -1743 and -1712 through `AppleScriptError(code:message:)` (ADR-034) |
-| `WorkspaceAdapter` | Defined in ModeKit (M1) with only what hide apps uses: `runningApplications()` (regular applications as `RunningApplication`; entries with an invalid bundle identifier are skipped), `hide(_:)` and `unhide(_:)` returning `ApplicationVisibilityChange` (`changed` means the request was accepted, not that the effect was observed: hiding is asynchronous in AppKit). For the wallpaper: `connectedDisplays()` (display UUIDs) and `setDesktopImage(_:on:)`, which changes the current Space of that display only and throws when the file is missing or the display is gone (ADR-038). M2 adapter: `NSWorkspace`, `NSRunningApplication`, `NSScreen`. In-process, no timeout by design; must not block (ADR-036) |
+| `DefaultsStore` | Defined in ModeKit (`value(for:)`, `set(_:for:)`, `remove(_:)` over `DefaultsKey` and `DefaultsValue`; nil means absent, not false). M2 adapter: `CFPreferences` for other apps' domains, `UNVERIFIED` for `com.apple.finder` and `com.apple.dock` (docs/07). No timeout: local preference access (ADR-034). Real: `CFPreferencesDefaultsStore` (`Platform/Defaults`). |
+| `ProcessRunner` | Defined in ModeKit: `run(ProcessCommand)` with an executable URL, an argv array (never a shell string) and a timeout; a nonzero exit is a `ProcessResult`, not an error. M2 adapter: `Process`, enforces the timeout (ADR-034). Real: `FoundationProcessRunner` (`Platform/Process`): SIGTERM on timeout or cancellation, SIGKILL after 2 s, returns only after the child exited. |
+| `AppleScriptRunner` | Defined in ModeKit: `run(AppleScript, timeout:)`; `AppleScript` is built from a `StaticString` only, so nothing can be interpolated. M2 adapter: `NSAppleScript`, enforces the timeout, maps -1743 and -1712 through `AppleScriptError(code:message:)` (ADR-034). Real: `NSAppleScriptRunner` (`Platform/AppleScript`): one dedicated background thread, scripts never overlap, the timeout is a watchdog. |
+| `WorkspaceAdapter` | Defined in ModeKit (M1) with only what hide apps uses: `runningApplications()` (regular applications as `RunningApplication`; entries with an invalid bundle identifier are skipped), `hide(_:)` and `unhide(_:)` returning `ApplicationVisibilityChange` (`changed` means the request was accepted, not that the effect was observed: hiding is asynchronous in AppKit). For the wallpaper: `connectedDisplays()` (display UUIDs) and `setDesktopImage(_:on:)`, which changes the current Space of that display only and throws when the file is missing or the display is gone (ADR-038). M2 adapter: `NSWorkspace`, `NSRunningApplication`, `NSScreen`. In-process, no timeout by design; must not block (ADR-036). Real: `AppKitWorkspaceAdapter` with `DisplayIdentifierMapping` and `WorkspaceError` (`Platform/Workspace`). |
 | `SessionClock` | `SystemSessionClock` in ModeKit: `Date()` and `ContinuousClock` sleep. Not named `Clock`, which would shadow the standard library protocol (ADR-032) |
-| `SessionLogger` | `os.Logger` adapter with privacy annotations, in Platform (M2). Receives typed `SessionEvent`s; `reason` strings may contain paths and are logged as private. ModeKit never imports `os` |
+| `SessionLogger` | `os.Logger` adapter with privacy annotations, in Platform (M2). Receives typed `SessionEvent`s; `reason` strings may contain paths and are logged as private. ModeKit never imports `os`. Real: `OSSessionLogger` with the pure `SessionLogMessage` (`Platform/Logging`). |
 | `FileStore` | `FileManagerFileStore` in ModeKit (Foundation only, ADR-029): temporary file, `F_FULLFSYNC`, `rename(2)`, directory flush (ADR-033). Implemented in M1; the other ports arrive with the branch that first needs them. Also reads and writes the wallpaper store bytes and the generated PNG files (ADR-038) |
-| `SolidColorImageRenderer` | Defined in ModeKit (M1): `pngData(for: SolidColor)`. ModeKit has no image framework; the M2 adapter renders the PNG |
-| `WallpaperStoreInspector` | Defined in ModeKit (M1): `fingerprint(of:)` returns a `WallpaperStoreFingerprint`; equal if and only if the wallpaper configuration this app can change is equal, ignoring volatile fields such as `LastUse`; throws `WallpaperStoreError.unrecognizedFormat` otherwise. The knowledge of the undocumented `Index.plist` format lives only in the M2 adapter (ADR-039) |
-| `ActionPorts`, `WallpaperLocations` | Plain values in ModeKit (M1): `ActionPorts` groups every port above that actions use (`SessionClock` included, for the wallpaper polling); `WallpaperLocations { storeURL, generatedImagesDirectory }` is injected by the composition root, ModeKit never resolves home or bundle paths |
-| `DistributedNotifier` | Defined in ModeKit (M1): `post(DistributedNotificationName)`; cannot report whether anything reacted. M2 adapter: `DistributedNotificationCenter` post; applies menu bar changes live (ADR-026). In-process, no timeout by design; must not block (ADR-037) |
+| `SolidColorImageRenderer` | Defined in ModeKit (M1): `pngData(for: SolidColor)`. ModeKit has no image framework; the M2 adapter renders the PNG. Real: `CoreGraphicsSolidColorImageRenderer` (`Platform/Rendering`): 64 x 64 sRGB PNG. |
+| `WallpaperStoreInspector` | Defined in ModeKit (M1): `fingerprint(of:)` returns a `WallpaperStoreFingerprint`; equal if and only if the wallpaper configuration this app can change is equal, ignoring volatile fields such as `LastUse`; throws `WallpaperStoreError.unrecognizedFormat` otherwise. The knowledge of the undocumented `Index.plist` format lives only in the M2 adapter (ADR-039). Real: `PropertyListWallpaperStoreInspector` with `PropertyListValue` (`Platform/Wallpaper`, ADR-041). |
+| `ActionPorts`, `WallpaperLocations` | Plain values in ModeKit (M1): `ActionPorts` groups every port above that actions use (`SessionClock` included, for the wallpaper polling); `WallpaperLocations { storeURL, generatedImagesDirectory }` is injected by the composition root, ModeKit never resolves home or bundle paths. Real locations: `SystemLocations` (`Platform/Locations`). |
+| `DistributedNotifier` | Defined in ModeKit (M1): `post(DistributedNotificationName)`; cannot report whether anything reacted. M2 adapter: `DistributedNotificationCenter` post; applies menu bar changes live (ADR-026). In-process, no timeout by design; must not block (ADR-037). Real: `DistributedNotificationCenterNotifier` (`Platform/Notifications`). |
 
 ## Logging
 
 `os.Logger`, subsystem = bundle identifier, one category per component (`session`, `actions`, `platform`, `ui`). No PII, no file paths of user documents at `.public` privacy. ModeKit logs through the `SessionLogger` port: one `SessionEvent` per state transition and per action step, with the session ID.
 
+`OSSessionLogger` (category `session`) is the real `SessionLogger`. Its subsystem is the bundle identifier read from `Bundle.main` by the composition root, never a literal. The pure `SessionLogMessage` turns each event into a level and a text:
+- `info` is for state changes and successful steps; `error` is for failures.
+- The public part holds states, action identifiers, phases and session IDs.
+- `reason` strings, store errors and profile names go only to a detail logged as `.private`.
+
 ## Threading
 
 Domain and platform adapters are `Sendable` and async. Main-actor work is limited to view models and AppKit calls that require it. No `DispatchQueue.main.async` in new code; use `@MainActor`.
+
+Rules for the M2 adapters (ADR-040):
+- `AppKitWorkspaceAdapter` hops to the main actor inside each async method.
+- `NSAppleScriptRunner` runs scripts on its own `Thread`, so a blocked script never holds the main thread or the cooperative pool.
+- `FoundationProcessRunner` and `NSAppleScriptRunner` wait through `CompletionSignal`, a cancellation-aware one-shot value, and never block a thread while waiting.
