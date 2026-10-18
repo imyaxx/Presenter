@@ -1,7 +1,8 @@
 import Foundation
 import ModeKit
 
-/// A ``FileStore`` fake that keeps files in memory, records every call, and fails the next call on request.
+/// A ``FileStore`` fake that keeps files in memory, records every call, and fails the next call on request. An optional
+/// read hook lets another fake change a file just before a read returns it (``FakeWallpaperStore``).
 actor InMemoryFileStore: FileStore {
     enum Operation: Equatable {
         case read(String)
@@ -16,6 +17,7 @@ actor InMemoryFileStore: FileStore {
     private var failsNextRead = false
     private var failsNextWrite = false
     private var failsNextRemove = false
+    private var readHook: (@Sendable (URL) async -> Void)?
 
     func read(_ url: URL) async throws -> Data? {
         operations.append(.read(url.lastPathComponent))
@@ -25,6 +27,7 @@ actor InMemoryFileStore: FileStore {
             failsNextRead = false
             throw InjectedFailure()
         }
+        await readHook?(url)
         return files[url]
     }
 
@@ -47,6 +50,9 @@ actor InMemoryFileStore: FileStore {
         }
         files[url] = nil
     }
+
+    /// Runs `hook` inside every successful read, before the contents are returned.
+    func onRead(_ hook: @escaping @Sendable (URL) async -> Void) { readHook = hook }
 
     func failNextRead() { failsNextRead = true }
     func failNextWrite() { failsNextWrite = true }

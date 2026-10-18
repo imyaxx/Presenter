@@ -1,12 +1,22 @@
+import Foundation
 import ModeKit
 
 /// A stateful ``WorkspaceAdapter``: `hide` and `unhide` change the listed applications, with an ordered call log,
 /// scripted responses per application, and helpers that change the world the way the user or the system would.
+/// Displays are settable; `setDesktopImage` can fail per display and otherwise hands the image to the
+/// ``FakeWallpaperStore``, whose agent persists it later.
 actor FakeWorkspaceAdapter: WorkspaceAdapter {
     enum Call: Equatable, Sendable {
         case list
         case hide(BundleIdentifier)
         case unhide(BundleIdentifier)
+        case connectedDisplays
+        case setDesktopImage(URL, DisplayIdentifier)
+    }
+
+    /// Thrown by `setDesktopImage` for a display that is not connected.
+    struct DisplayNotConnected: Error, Equatable {
+        let display: DisplayIdentifier
     }
 
     enum Operation: Hashable, Sendable {
@@ -22,9 +32,28 @@ actor FakeWorkspaceAdapter: WorkspaceAdapter {
     private(set) var applications: [RunningApplication]
     private(set) var calls: [Call] = []
     private var scripted: [ScriptKey: ApplicationVisibilityChange] = [:]
+    private(set) var displays: [DisplayIdentifier]
+    private var desktopImageFailures: [DisplayIdentifier: any Error] = [:]
+    private let wallpaperStore: FakeWallpaperStore?
 
-    init(_ applications: [RunningApplication] = []) {
+    init(
+        _ applications: [RunningApplication] = [],
+        displays: [DisplayIdentifier] = [],
+        wallpaperStore: FakeWallpaperStore? = nil,
+    ) {
         self.applications = applications
+        self.displays = displays
+        self.wallpaperStore = wallpaperStore
+    }
+
+    /// Replaces the connected displays, as plugging or unplugging would.
+    func connect(_ displays: [DisplayIdentifier]) {
+        self.displays = displays
+    }
+
+    /// Makes every `setDesktopImage` on `display` throw `error`.
+    func failSetDesktopImage(on display: DisplayIdentifier, with error: any Error) {
+        desktopImageFailures[display] = error
     }
 
     /// Makes every `operation` on `application` return `.refused` and change nothing, until ``allow(_:of:)``.
@@ -71,6 +100,22 @@ actor FakeWorkspaceAdapter: WorkspaceAdapter {
     func runningApplications() async -> [RunningApplication] {
         calls.append(.list)
         return applications
+    }
+
+    func connectedDisplays() async -> [DisplayIdentifier] {
+        calls.append(.connectedDisplays)
+        return displays
+    }
+
+    func setDesktopImage(_ image: URL, on display: DisplayIdentifier) async throws {
+        calls.append(.setDesktopImage(image, display))
+        if let error = desktopImageFailures[display] {
+            throw error
+        }
+        guard displays.contains(display) else {
+            throw DisplayNotConnected(display: display)
+        }
+        await wallpaperStore?.agentReceived(image, on: display)
     }
 
     func hide(_ application: BundleIdentifier) async -> ApplicationVisibilityChange {

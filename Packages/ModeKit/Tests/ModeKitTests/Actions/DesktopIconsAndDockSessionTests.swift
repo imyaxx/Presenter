@@ -34,7 +34,7 @@ struct DesktopIconsAndDockSessionTests {
     // (a)
     @Test(arguments: initialStates)
     func activateThenDeactivateLeavesThePreferencesExactlyAsTheyWere(initial: InitialState) async throws {
-        let harness = Harness(initial: initial.values)
+        let harness = await Harness(initial: initial.values)
         let controller = harness.makeController()
         _ = await controller.recoverIfNeeded()
 
@@ -54,7 +54,7 @@ struct DesktopIconsAndDockSessionTests {
     // (b)
     @Test
     func dockNotAuthorizedRollsBackTheDesktopIcons() async throws {
-        let harness = Harness(initial: [:])
+        let harness = await Harness(initial: [:])
         await harness.scripts.fail(
             AppleScript("tell application \"System Events\" to set autohide of dock preferences to true"),
             with: AppleScriptError.notAuthorized,
@@ -80,7 +80,7 @@ struct DesktopIconsAndDockSessionTests {
     @Test
     func crashRecoveryRestoresFromTheSessionFileAlone() async throws {
         let initial: [DefaultsKey: DefaultsValue] = [Harness.createDesktop: .integer(1)]
-        let harness = Harness(initial: initial)
+        let harness = await Harness(initial: initial)
         let crashed = harness.makeController()
         _ = await crashed.recoverIfNeeded()
         _ = try await crashed.activate(Harness.profile)
@@ -100,7 +100,7 @@ struct DesktopIconsAndDockSessionTests {
     // (d)
     @Test
     func userChangeToTheDockDuringTheSessionIsKept() async throws {
-        let harness = Harness(initial: [:])
+        let harness = await Harness(initial: [:])
         let controller = harness.makeController()
         _ = await controller.recoverIfNeeded()
         _ = try await controller.activate(Harness.profile)
@@ -117,7 +117,7 @@ struct DesktopIconsAndDockSessionTests {
 
     @Test
     func dockNotAuthorizedOnRestoreDegradesAndKeepsItsRecord() async throws {
-        let harness = Harness(initial: [:])
+        let harness = await Harness(initial: [:])
         let controller = harness.makeController()
         _ = await controller.recoverIfNeeded()
         _ = try await controller.activate(Harness.profile)

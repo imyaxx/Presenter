@@ -1,13 +1,21 @@
+import Foundation
 import ModeKit
 import Testing
 
 struct StandardActionFactoryTests {
     private let factory = StandardActionFactory(
-        defaults: FakeDefaultsStore(),
-        processRunner: FakeProcessRunner(),
-        appleScriptRunner: FakeAppleScriptRunner(),
-        workspace: FakeWorkspaceAdapter(),
-        notifier: FakeDistributedNotifier(),
+        ports: ActionPorts(
+            defaults: FakeDefaultsStore(),
+            processRunner: FakeProcessRunner(),
+            appleScriptRunner: FakeAppleScriptRunner(),
+            workspace: FakeWorkspaceAdapter(),
+            notifier: FakeDistributedNotifier(),
+            fileStore: InMemoryFileStore(),
+            clock: FakeClock(sleeping: .immediate),
+            imageRenderer: FakeSolidColorImageRenderer(),
+            storeInspector: FakeWallpaperStoreInspector(),
+        ),
+        wallpaperLocations: StandardActionsHarness.wallpaperLocations,
     )
 
     @Test(arguments: [

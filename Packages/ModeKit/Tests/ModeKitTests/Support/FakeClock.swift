@@ -1,8 +1,16 @@
 import Foundation
 import ModeKit
 
-/// A ``SessionClock`` that only moves when the test calls ``advance(by:)``. No real time passes.
+/// A ``SessionClock`` that only moves when the test calls ``advance(by:)``, or, in ``SleepMode/immediate`` mode, by
+/// exactly the requested duration inside every `sleep`. No real time passes. Every requested sleep is recorded.
 final class FakeClock: SessionClock, @unchecked Sendable {
+    enum SleepMode: Sendable {
+        /// A sleep ends when ``advance(by:)`` passes its deadline.
+        case untilAdvanced
+        /// A sleep advances the clock by its duration and returns at once, unless the task is cancelled.
+        case immediate
+    }
+
     private struct Sleeper {
         let deadline: Duration
         let continuation: CheckedContinuation<Void, any Error>
@@ -10,13 +18,21 @@ final class FakeClock: SessionClock, @unchecked Sendable {
 
     // ModeKit sources use no locks; this test fake does, because `now()` is synchronous. `lock` guards every var.
     private let lock = NSLock()
+    private let sleepMode: SleepMode
     private var currentDate: Date
+    private var requestedSleeps: [Duration] = []
     private var elapsed = Duration.zero
     private var sleepers: [UUID: Sleeper] = [:]
     private var sleeperWaiters: [CheckedContinuation<Void, Never>] = []
 
-    init(now: Date = Date(timeIntervalSince1970: 1_792_238_400)) {
+    init(now: Date = Date(timeIntervalSince1970: 1_792_238_400), sleeping sleepMode: SleepMode = .untilAdvanced) {
         currentDate = now
+        self.sleepMode = sleepMode
+    }
+
+    /// Every duration passed to `sleep`, in order.
+    var sleeps: [Duration] {
+        lock.withLock { requestedSleeps }
     }
 
     var sleeperCount: Int {
@@ -28,6 +44,12 @@ final class FakeClock: SessionClock, @unchecked Sendable {
     }
 
     func sleep(for duration: Duration) async throws {
+        lock.withLock { requestedSleeps.append(duration) }
+        if sleepMode == .immediate {
+            try Task.checkCancellation()
+            lock.withLock { elapsed += duration }
+            return
+        }
         let id = UUID()
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in

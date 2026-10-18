@@ -3,25 +3,13 @@
 /// Supports the desktop icons, Dock, menu bar and hide apps steps; the wallpaper step arrives with its action and
 /// throws ``ActionError/unsupported(_:)`` until then. Threading: a value type holding its ports.
 public struct StandardActionFactory: ActionFactory {
-    private let defaults: any DefaultsStore
-    private let processRunner: any ProcessRunner
-    private let appleScriptRunner: any AppleScriptRunner
-    private let workspace: any WorkspaceAdapter
-    private let notifier: any DistributedNotifier
+    private let ports: ActionPorts
+    private let wallpaperLocations: WallpaperLocations
 
-    /// Creates the factory over the ports the actions need.
-    public init(
-        defaults: any DefaultsStore,
-        processRunner: any ProcessRunner,
-        appleScriptRunner: any AppleScriptRunner,
-        workspace: any WorkspaceAdapter,
-        notifier: any DistributedNotifier,
-    ) {
-        self.defaults = defaults
-        self.processRunner = processRunner
-        self.appleScriptRunner = appleScriptRunner
-        self.workspace = workspace
-        self.notifier = notifier
+    /// Creates the factory over the ports the actions need and the wallpaper locations the composition root resolves.
+    public init(ports: ActionPorts, wallpaperLocations: WallpaperLocations) {
+        self.ports = ports
+        self.wallpaperLocations = wallpaperLocations
     }
 
     /// - Throws: ``ActionError/unsupported(_:)`` for a step without an action yet.
@@ -34,7 +22,7 @@ public struct StandardActionFactory: ActionFactory {
         case .hideMenuBar:
             menuBarAction
         case .hideApps(let exclusions):
-            HideAppsAction(exclusions: exclusions, workspace: workspace)
+            HideAppsAction(exclusions: exclusions, workspace: ports.workspace)
         case .wallpaper:
             throw ActionError.unsupported(step.actionIdentifier)
         }
@@ -50,21 +38,21 @@ public struct StandardActionFactory: ActionFactory {
         case .menuBar:
             menuBarAction
         case .hideApps:
-            HideAppsRestorer(workspace: workspace)
+            HideAppsRestorer(workspace: ports.workspace)
         case .wallpaper:
             throw ActionError.unsupported(identifier)
         }
     }
 
     private var desktopIconsAction: DesktopIconsAction {
-        DesktopIconsAction(defaults: defaults, processRunner: processRunner)
+        DesktopIconsAction(defaults: ports.defaults, processRunner: ports.processRunner)
     }
 
     private var dockAction: DockAction {
-        DockAction(defaults: defaults, appleScriptRunner: appleScriptRunner)
+        DockAction(defaults: ports.defaults, appleScriptRunner: ports.appleScriptRunner)
     }
 
     private var menuBarAction: MenuBarAction {
-        MenuBarAction(defaults: defaults, notifier: notifier)
+        MenuBarAction(defaults: ports.defaults, notifier: ports.notifier)
     }
 }
