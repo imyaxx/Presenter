@@ -25,7 +25,8 @@
 │       │   │                    # DisplayIdentifier, BundleIdentifier, AutoExit, ActionIdentifier,
 │       │   │                    # ProfileValidation, ProfileValidationError
 │       │   ├── Actions/         # one file per type: DesktopIconsAction(+Error), DockAction(+Error),
-│       │   │                    # StandardActionFactory; more actions follow
+│       │   │                    # MenuBarAction, HideAppsAction, HideAppsRestorer, HideAppsActionError,
+│       │   │                    # StandardActionFactory; the wallpaper action follows
 │       │   ├── Session/         # SessionController (+Restoration, +Recovery, +Degraded), SessionState,
 │       │   │                    # ActiveSession, DegradedReason, RestoreReport, RecoveryOutcome, TriggerResult,
 │       │   │                    # SessionError, ActionFailure, ActionError, contract (ActionRestorer, ModeAction,
@@ -36,11 +37,12 @@
 │       │   │                    # SchemaVersion; internal: VersionedJSONFile (shared file policy),
 │       │   │                    # VersionedFileEnvelope, ProfilesFile, SessionFile, UndecodableFilePolicy,
 │       │   │                    # PersistenceCoding, TaskSerializer
-│       │   └── Ports/           # protocols for system access: FileStore, SessionClock, SessionLogger,
+│       │   └── Ports/           # protocols for system access: FileStore, SessionClock,
 │       │                        # DefaultsStore (DefaultsKey, DefaultsValue, DefaultsError), ProcessRunner
 │       │                        # (ProcessCommand, ProcessResult, ProcessError), AppleScriptRunner
-│       │                        # (AppleScript, AppleScriptError)
-│       │                        # (with SessionEvent)
+│       │                        # (AppleScript, AppleScriptError), WorkspaceAdapter (RunningApplication,
+│       │                        # ApplicationVisibilityChange), DistributedNotifier
+│       │                        # (DistributedNotificationName), SessionLogger (with SessionEvent)
 │       └── Tests/ModeKitTests/
 │           ├── Model/
 │           ├── Actions/
@@ -51,6 +53,7 @@
 │                                # SessionRecordBuilder, FakeModeAction, FakeActionFactory, FakeClock,
 │                                # RecordingSessionLogger, AsyncGate, SessionControllerHarness,
 │                                # FakeDefaultsStore, FakeProcessRunner, FakeAppleScriptRunner,
+│                                # FakeWorkspaceAdapter, FakeDistributedNotifier, RunningApplication+Fixture,
 │                                # StandardActionsHarness)
 └── App/
     ├── Sources/

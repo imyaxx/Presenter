@@ -18,7 +18,7 @@ Status: **done on branch `docs/m0-platform-spikes`, 2026-10-17, macOS 27.0 only.
 
 ## M1: ModeKit core
 
-Branches (sequential, each merged separately): `feat/modekit-models-and-persistence`, `feat/modekit-session-controller`, `feat/modekit-actions-desktop-icons-dock`, `feat/modekit-actions-apps-wallpaper-menubar`.
+Branches (sequential, each merged separately): `feat/modekit-models-and-persistence`, `feat/modekit-session-controller`, `feat/modekit-actions-desktop-icons-dock`, `feat/modekit-actions-apps-menubar`, `feat/modekit-action-wallpaper`. The last planned branch, `feat/modekit-actions-apps-wallpaper-menubar`, was split in two (prompt 05): the wallpaper action is the riskiest (undocumented store file, polling for the agent) and gets its own branch.
 Deliverables: domain models; ports and fakes; `ProfileStore` and `SessionStore` with atomic writes and schema versions; `SessionController` actor with the state machine, rollback, conditional restore, crash recovery, timer; actions implemented against ports.
 Acceptance: all mandatory scenarios in `docs/06-testing.md` pass; ModeKit coverage target met; zero imports other than Foundation.
 
