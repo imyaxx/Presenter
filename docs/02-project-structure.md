@@ -21,16 +21,23 @@
 │   └── ModeKit/                 # domain core, Foundation only
 │       ├── Package.swift
 │       ├── Sources/ModeKit/
-│       │   ├── Model/           # Profile, ProfileStep, WallpaperChoice, DisplaySelection
+│       │   ├── Model/           # Profile, ProfileStep, WallpaperChoice, SolidColor, DisplaySelection,
+│       │   │                    # DisplayIdentifier, BundleIdentifier, AutoExit, ActionIdentifier,
+│       │   │                    # ProfileValidation, ProfileValidationError
 │       │   ├── Actions/         # one folder per action: DesktopIcons/, Dock/, MenuBar/, Apps/, Wallpaper/
-│       │   ├── Session/         # SessionController, SessionState, SessionRecord, Recovery
-│       │   ├── Persistence/     # ProfileStore, SessionStore, schema versions
-│       │   └── Ports/           # protocols for system access
+│       │   ├── Session/         # SessionController, SessionState, SessionRecord, ActionRecord, Recovery
+│       │   ├── Persistence/     # ProfileStore, SessionStore, FileManagerFileStore (ADR-029), StoreError,
+│       │   │                    # SchemaVersion; internal: VersionedJSONFile (shared file policy),
+│       │   │                    # VersionedFileEnvelope, ProfilesFile, SessionFile, UndecodableFilePolicy,
+│       │   │                    # PersistenceCoding, TaskSerializer
+│       │   └── Ports/           # protocols for system access (FileStore so far)
 │       └── Tests/ModeKitTests/
+│           ├── Model/
 │           ├── Actions/
 │           ├── Session/
 │           ├── Persistence/
-│           └── Support/         # fakes and builders shared by tests
+│           └── Support/         # fakes and builders shared by tests (InMemoryFileStore, ProfileBuilder,
+│                                # SessionRecordBuilder)
 └── App/
     ├── Sources/
     │   ├── Application/         # @main, AppDelegate, AppEnvironment (composition root)
