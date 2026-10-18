@@ -46,6 +46,24 @@ struct ProfileStepCodingTests {
         #expect(json == expected)
     }
 
+    @Test
+    func specificDisplaysAreEncodedSortedByUUID() throws {
+        let identifiers = [
+            "FFFFFFFF-0000-0000-0000-000000000000",
+            "00000000-0000-0000-0000-000000000001",
+            "80000000-0000-0000-0000-000000000000",
+        ]
+        let displays = try identifiers.map { DisplayIdentifier(uuid: try #require(UUID(uuidString: $0))) }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+
+        let json = try #require(
+            String(bytes: try encoder.encode(DisplaySelection.specific(Set(displays))), encoding: .utf8))
+
+        let sorted = identifiers.sorted().map { "\"\($0)\"" }.joined(separator: ",")
+        #expect(json == #"{"displays":["# + sorted + #"],"type":"specific"}"#)
+    }
+
     @Test(arguments: [
         #"{"type":"hideEverything"}"#,
         #"{"type":"wallpaper","choice":{"type":"gradient"},"displays":{"type":"allDisplays"}}"#,
