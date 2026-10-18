@@ -19,15 +19,11 @@ struct OSSessionLogger: SessionLogger {
 
     func log(_ event: SessionEvent) {
         let message = SessionLogMessage(event)
-        switch (message.level, message.privateDetail) {
-        case (.info, nil):
-            logger.info("\(message.publicText, privacy: .public)")
-        case (.info, let detail?):
-            logger.info("\(message.publicText, privacy: .public): \(detail, privacy: .private)")
-        case (.error, nil):
-            logger.error("\(message.publicText, privacy: .public)")
-        case (.error, let detail?):
-            logger.error("\(message.publicText, privacy: .public): \(detail, privacy: .private)")
+        let type: OSLogType = message.level == .error ? .error : .info
+        if let detail = message.privateDetail {
+            logger.log(level: type, "\(message.publicText, privacy: .public): \(detail, privacy: .private)")
+        } else {
+            logger.log(level: type, "\(message.publicText, privacy: .public)")
         }
     }
 }

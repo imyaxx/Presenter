@@ -56,6 +56,16 @@ struct NSAppleScriptRunnerTests {
     }
 
     @Test
+    func aCancelledCallerGetsCancellationErrorAtOnce() async {
+        let call = Task { try await runner.run(AppleScript("delay 2"), timeout: .seconds(10)) }
+        try? await Task.sleep(for: .milliseconds(100))
+
+        call.cancel()
+
+        await #expect(throws: CancellationError.self) { try await call.value }
+    }
+
+    @Test
     func twoScriptsIssuedAtOnceDoNotOverlap() async throws {
         let clock = ContinuousClock()
         let start = clock.now
