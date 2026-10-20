@@ -105,7 +105,7 @@ Before starting, confirm that the user is at the Mac, has saved their work, and 
 | B1 | `world` against `defaults read-type` / `defaults read` of the five keys, and the store SHA-256 against `shasum -a 256`. | Equal. Proves the `CFPreferences` reads. |
 | B2 | `killall <name that does not exist>`. | The exit code. A found-but-unsignalled process cannot be produced: say so. |
 | B3 | `run --profile desktop-icons --hold-seconds 8` | Icons disappear and return; `killall Finder` exits 0; the diff is empty. |
-| B4 | Dock. `tccutil reset AppleEvents <app id>`, then `run --profile dock`. The user types the prompt text and its language, and chooses Allow. Then: reset and Don't Allow (`notAuthorized`, rolled back); reset and `--language ru` (Russian prompt text); reset and no answer (system -1712 after about 120 s, mapped to `timedOut`). Leave it allowed. | The prompt names the app and shows the usage description. |
+| B4 | Dock (the Dock must not be auto-hidden at the start, or the action skips its script: ask the user to turn auto-hide off for B4 and back on at the end). `tccutil reset AppleEvents <app id>`, then `run --profile dock`. The user types the prompt text and its language, and chooses Allow. Then: reset and Don't Allow (`notAuthorized`, rolled back); reset and `--language ru` (Russian prompt text); reset and no answer (system -1712 after about 120 s, mapped to `timedOut`). Leave it allowed. | The prompt names the app and shows the usage description. |
 | B5 | `run --profile menu-bar` on the desktop, then with an app in full screen. | The menu bar hides and returns in both; the diff is empty. |
 | B6 | `open -a TextEdit; open -a Calculator`, then `run --hide-only com.apple.TextEdit,com.apple.calculator`. Variants: a second TextEdit instance (`open -n -a TextEdit`); the user unhides one app during the hold; the user unhides all; the user quits Calculator; TextEdit in full screen. | `hide` and `unhide` results in the event lines; outcomes as ADR-036 says; a quit app is not relaunched. |
 | B7 | `store-structure`; `run --profile wallpaper-color --hold-seconds 10` (the user checks the other Space); `store-structure` during a hold; `wallpaper-latency --runs 12` (apply the calibration rule); `run --profile wallpaper-image`; `wallpaper-interrupt`; a second display if present. | The diff's store comparison is equal. |
@@ -114,6 +114,16 @@ Before starting, confirm that the user is at the Mac, has saved their work, and 
 | B10 | `adapter-check-diff.sh <first backup>`. | Empty; list anything left and how to undo it. |
 
 Reboot recovery and macOS 14 and 15 are outside this protocol.
+
+### Lessons from the first run (2026-10-20)
+
+- **Frontmost application.** The frontmost application is never hidden. Before every B6, B8 and B9 run, check `lsappinfo info -only bundleid "$(lsappinfo front)"`; if it is a test application, ask the user to click the Claude or Terminal window. Switching Spaces alone may leave a full-screen application frontmost.
+- **After `activate`, run `recover`** before any other command. Otherwise the next `run` recovers the old session first and may report a skip that has nothing to do with the stage.
+- **Crash test: kill the app, not the launcher.** `pgrep -f` also matches the `open` command line. Pick the process whose executable is `Presenter.app/Contents/MacOS/Presenter`.
+- **Watch what the user can see.** The user should be on a normal desktop Space, with the test applications' windows visible. A full-screen Space hides the desktop icons and the wallpaper from view.
+- **Test applications.** At the end, quit only the applications the protocol opened. A closed window does not quit TextEdit or Calculator.
+- **Expected store differences.** A full-screen Space or a new Space adds a Space entry to `Index.plist`. The diff shows it as `only in actual`, and a copy of the backup does not remove it while that Space exists.
+- **Numbering.** Record stage B<N> as C<N> in docs/07.
 
 ## Repeating it
 
