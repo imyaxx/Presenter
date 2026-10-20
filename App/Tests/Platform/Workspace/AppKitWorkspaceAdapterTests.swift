@@ -30,7 +30,7 @@ struct AppKitWorkspaceAdapterTests {
         #expect(await adapter.unhide(absent) == .notRunning)
     }
 
-    /// Regression for adapter check C4 (2026-10-20): `hide()` returned `false` while TextEdit did hide, so the outcome
+    /// Regression for adapter check C6 (2026-10-20): `hide()` returned `false` while TextEdit did hide, so the outcome
     /// comes from the observed `isHidden` of every instance, never from the request's return value.
     @Test(arguments: [
         ([Bool](), AppKitWorkspaceAdapter.Visibility.hidden, ApplicationVisibilityChange?.some(.notRunning)),

@@ -6,7 +6,7 @@ import ModeKit
 /// Every AppKit call hops to the main actor inside the async method. `hide` and `unhide` ask every instance, then
 /// watch `isHidden` for up to ``visibilityTimeout``: `changed` means every instance reached the wanted state, `refused`
 /// that one did not in time. The `Bool` that `NSRunningApplication.hide()` returns is ignored: on macOS 27.0.1 it
-/// returned `false` while the application did hide (adapter check C4, 2026-10-20). `setDesktopImage` changes the
+/// returned `false` while the application did hide (adapter check C6, 2026-10-20). `setDesktopImage` changes the
 /// current Space of one display only (S2).
 ///
 /// Threading: a value type; methods may be called from any context.
