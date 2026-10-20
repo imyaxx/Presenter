@@ -1,26 +1,28 @@
 import SwiftUI
 
-/// Content of the menu-bar popover: product identity and the Quit command.
+/// The menu-bar popover (docs/04): the state line, a notice, the content for the state, and the footer. System
+/// controls, fonts and colors only; `feat/design-system-foundation` restyles it without changing behavior.
 struct MenuBarView: View {
-    let productName: String
+    /// The popover width of docs/04; text wraps inside it.
+    static let width: CGFloat = 320
+
+    let model: MenuBarViewModel
     let version: String?
     let quit: () -> Void
 
     var body: some View {
         VStack(alignment: .leading) {
-            Text(verbatim: productName)
-                .font(.headline)
-            if let version {
-                Text(L10n.Menu.version(version))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+            MenuBarStateLine(presentation: model.presentation)
+            if let notice = model.notice {
+                MenuBarNoticeView(notice: notice, dismiss: model.dismissNotice)
             }
             Divider()
-            Button(action: quit) {
-                Text(L10n.Menu.quit)
-            }
-            .keyboardShortcut("q")
+            MenuBarContentView(model: model)
+            Divider()
+            MenuBarFooter(model: model, version: version, quit: quit)
         }
         .padding()
+        .frame(width: Self.width)
+        .task { await model.popoverDidOpen() }
     }
 }

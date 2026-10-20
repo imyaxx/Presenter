@@ -1,6 +1,402 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "action.desktopIcons" : {
+      "comment" : "Name of a setting Presenter changes, used inside sentences and lists.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desktop icons"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Значки на рабочем столе"
+          }
+        }
+      }
+    },
+    "action.dock" : {
+      "comment" : "Name of a setting Presenter changes, used inside sentences and lists. Dock is the macOS name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dock"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dock"
+          }
+        }
+      }
+    },
+    "action.hideApps" : {
+      "comment" : "Name of a setting Presenter changes, used inside sentences and lists.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hiding apps"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрытие приложений"
+          }
+        }
+      }
+    },
+    "action.menuBar" : {
+      "comment" : "Name of a setting Presenter changes, used inside sentences and lists.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menu bar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Строка меню"
+          }
+        }
+      }
+    },
+    "action.wallpaper" : {
+      "comment" : "Name of a setting Presenter changes, used inside sentences and lists.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wallpaper"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обои"
+          }
+        }
+      }
+    },
+    "menu.attention.restoreFailed" : {
+      "comment" : "Popover text when some settings could not be restored. The argument is a list of setting names, for example 'Dock and Wallpaper'.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not restore: %@."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось восстановить: %@."
+          }
+        }
+      }
+    },
+    "menu.attention.unreadable" : {
+      "comment" : "Popover text when session.json is corrupted or from a newer version.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The session file could not be read. Presenter left it untouched."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось прочитать файл сеанса. Presenter его не изменял."
+          }
+        }
+      }
+    },
+    "menu.discard" : {
+      "comment" : "Popover button, first step of deleting a session file that cannot be read.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard Session File…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить файл сеанса…"
+          }
+        }
+      }
+    },
+    "menu.discard.cancel" : {
+      "comment" : "Button that cancels deleting the unreadable session file.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отменить"
+          }
+        }
+      }
+    },
+    "menu.discard.confirm" : {
+      "comment" : "Button that confirms deleting the unreadable session file.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить"
+          }
+        }
+      }
+    },
+    "menu.discard.confirmation" : {
+      "comment" : "Inline confirmation text before deleting an unreadable session file.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The session file will be deleted. Settings it describes will not be restored."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Файл сеанса будет удалён. Описанные в нём настройки не будут восстановлены."
+          }
+        }
+      }
+    },
+    "menu.elapsed" : {
+      "comment" : "Accessibility label of the elapsed time shown while a profile is active.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active for"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Активно"
+          }
+        }
+      }
+    },
+    "menu.icon.active" : {
+      "comment" : "Accessibility label of the menu-bar icon while a profile is active.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presenter, active"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presenter, активно"
+          }
+        }
+      }
+    },
+    "menu.icon.idle" : {
+      "comment" : "Accessibility label of the menu-bar icon when no profile is active.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presenter, inactive"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presenter, неактивно"
+          }
+        }
+      }
+    },
+    "menu.icon.needsAttention" : {
+      "comment" : "Accessibility label of the menu-bar icon when a restore failed or the app could not start.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presenter, needs attention"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presenter, требуется внимание"
+          }
+        }
+      }
+    },
+    "menu.notice.dismiss" : {
+      "comment" : "Accessibility label of the button that hides a notice in the popover.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dismiss"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть"
+          }
+        }
+      }
+    },
+    "menu.profile.activate.hint" : {
+      "comment" : "Accessibility hint of a profile button in the popover.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activates the profile"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включает профиль"
+          }
+        }
+      }
+    },
+    "menu.profiles.empty.detail" : {
+      "comment" : "Popover empty state explanation. profiles.json is a file name and stays untranslated.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profiles will be created in Settings in a later version. For now, add them to profiles.json in the profiles folder."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Профили будут создаваться в Настройках в следующей версии. Пока добавьте их в файл profiles.json в папке профилей."
+          }
+        }
+      }
+    },
+    "menu.profiles.empty.title" : {
+      "comment" : "Popover empty state title when profiles.json has no profiles.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No profiles yet"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Профилей пока нет"
+          }
+        }
+      }
+    },
+    "menu.profiles.problem.corrupted" : {
+      "comment" : "Popover text when profiles.json is not valid. profiles.json is a file name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "profiles.json could not be read. It was left unchanged."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось прочитать profiles.json. Файл не изменён."
+          }
+        }
+      }
+    },
+    "menu.profiles.problem.newerVersion" : {
+      "comment" : "Popover text when profiles.json comes from a newer app version. profiles.json is a file name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "profiles.json was saved by a newer version of Presenter. It was left unchanged."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "profiles.json сохранён более новой версией Presenter. Файл не изменён."
+          }
+        }
+      }
+    },
+    "menu.profiles.problem.unreadable" : {
+      "comment" : "Popover text when the profiles folder cannot be read.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The profiles folder could not be read."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось прочитать папку профилей."
+          }
+        }
+      }
+    },
     "menu.quit" : {
       "comment" : "Menu-bar popover button that terminates the app.",
       "extractionState" : "manual",
@@ -19,6 +415,204 @@
         }
       }
     },
+    "menu.retryRestore" : {
+      "comment" : "Popover button that tries again to restore settings after a failed restore.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry Restore"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Повторить восстановление"
+          }
+        }
+      }
+    },
+    "menu.showProfiles" : {
+      "comment" : "Popover button that opens the folder with profiles.json in Finder.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Profiles in Finder"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать профили в Finder"
+          }
+        }
+      }
+    },
+    "menu.state.active" : {
+      "comment" : "Popover state line while a profile is active; an elapsed timer follows. The argument is a profile name chosen by the user.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active: %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Активно: %@"
+          }
+        }
+      }
+    },
+    "menu.state.applying" : {
+      "comment" : "Popover state line while a profile is being applied. The argument is a profile name chosen by the user.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applying %@…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Применяется %@…"
+          }
+        }
+      }
+    },
+    "menu.state.inactive" : {
+      "comment" : "Menu-bar popover state line when no profile is active.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inactive"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Неактивно"
+          }
+        }
+      }
+    },
+    "menu.state.needsAttention" : {
+      "comment" : "Popover state line when a restore failed or the session file cannot be read.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs attention"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Требуется внимание"
+          }
+        }
+      }
+    },
+    "menu.state.restoring" : {
+      "comment" : "Popover state line while settings are being restored, also at launch after an interrupted session.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restoring…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Восстановление…"
+          }
+        }
+      }
+    },
+    "menu.state.rollingBack" : {
+      "comment" : "Popover state line while a failed activation is being undone. The argument is a profile name chosen by the user.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undoing %@…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отмена %@…"
+          }
+        }
+      }
+    },
+    "menu.state.unavailable" : {
+      "comment" : "Popover state line when the app could not set itself up.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presenter could not start"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось запустить Presenter"
+          }
+        }
+      }
+    },
+    "menu.stop" : {
+      "comment" : "Popover button that deactivates the active profile and restores settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Остановить"
+          }
+        }
+      }
+    },
+    "menu.unavailable.detail" : {
+      "comment" : "Popover text under the state line when the app could not set itself up.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing on your Mac was changed. Quit and open Presenter again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На вашем Mac ничего не изменено. Закройте Presenter и откройте его снова."
+          }
+        }
+      }
+    },
     "menu.version" : {
       "comment" : "Menu-bar popover line under the product name. The argument is the app version, e.g. 1.2.0.",
       "extractionState" : "manual",
@@ -33,6 +627,222 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Версия %@"
+          }
+        }
+      }
+    },
+    "notice.activation.nothingChanged" : {
+      "comment" : "Notice after a failed activation. The argument is the name of one setting, for example 'Dock'.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: the current setting could not be read. Nothing was changed."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: не удалось прочитать текущую настройку. Ничего не изменено."
+          }
+        }
+      }
+    },
+    "notice.activation.partlyUndone" : {
+      "comment" : "Notice after a failed activation that could not be fully undone. The argument is the name of one setting, for example 'Dock'.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ could not be applied, and some changes could not be undone."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось применить: %@, и часть изменений отменить не удалось."
+          }
+        }
+      }
+    },
+    "notice.activation.undone" : {
+      "comment" : "Notice after a failed activation that was fully undone. The argument is the name of one setting, for example 'Dock'.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ could not be applied. Everything was undone."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось применить: %@. Все изменения отменены."
+          }
+        }
+      }
+    },
+    "notice.automationPermission" : {
+      "comment" : "Second line of a failed Dock notice. Use the names of the System Settings sections as shown in that language.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presenter needs permission to control System Events: System Settings > Privacy & Security > Automation."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presenter нужно разрешение на управление System Events: Системные настройки > Конфиденциальность и безопасность > Автоматизация."
+          }
+        }
+      }
+    },
+    "notice.discardFailed" : {
+      "comment" : "Notice when deleting the unreadable session file failed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The session file could not be deleted."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось удалить файл сеанса."
+          }
+        }
+      }
+    },
+    "notice.invalidProfile" : {
+      "comment" : "Notice when the chosen profile breaks a rule. profiles.json is a file name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This profile is not valid. Check it in profiles.json."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Профиль недействителен. Проверьте его в profiles.json."
+          }
+        }
+      }
+    },
+    "notice.keptUserChanges" : {
+      "comment" : "Notice after a restore listing settings the user changed during the session. The argument is a list of setting names, for example 'Dock and Wallpaper'.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Left as you changed them: %@."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оставлено, как вы изменили: %@."
+          }
+        }
+      }
+    },
+    "notice.notReady" : {
+      "comment" : "Notice when a profile is chosen before launch recovery finished.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presenter is still restoring. Try again in a moment."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presenter ещё восстанавливает настройки. Повторите чуть позже."
+          }
+        }
+      }
+    },
+    "notice.profilesFolderUnavailable" : {
+      "comment" : "Notice when the profiles folder cannot be created or shown.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The profiles folder could not be opened."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось открыть папку профилей."
+          }
+        }
+      }
+    },
+    "notice.recovered" : {
+      "comment" : "Notice at launch after the app restored settings from an interrupted session.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restored your settings after an interrupted session."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки восстановлены после прерванного сеанса."
+          }
+        }
+      }
+    },
+    "notice.sessionFileNotRemoved" : {
+      "comment" : "Notice after a stop when the session file cannot be deleted.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your settings were restored, but the session file could not be removed."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки восстановлены, но файл сеанса не удалось удалить."
+          }
+        }
+      }
+    },
+    "notice.sessionFileNotSaved" : {
+      "comment" : "Notice when activation stops because the session file cannot be written.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The session file could not be saved. Nothing was changed."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось сохранить файл сеанса. Ничего не изменено."
           }
         }
       }
