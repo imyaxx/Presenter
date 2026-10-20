@@ -90,6 +90,18 @@ struct PropertyListWallpaperStoreInspectorTests {
         #expect(try fingerprint(edited) == fingerprint(store))
     }
 
+    /// Regression for adapter check C7 (2026-10-20): `WallpaperAgent` rewrote `Displays` and `SystemDefault` by itself
+    /// after a restart, and the restore took that for a change by the user.
+    @Test(arguments: Fixture.all)
+    func changesOutsideTheAllSpacesEntryDoNotChangeTheFingerprint(name: String) throws {
+        let store = try Fixture.store(named: name)
+        var edited = store
+        edited["Displays"] = ["00000000-0000-0000-0000-00000000FFFF": ["Type": "individual"]]
+        edited["SystemDefault"] = ["Type": "individual"]
+
+        #expect(try fingerprint(edited) == fingerprint(store))
+    }
+
     @Test
     func theAllSpacesEntryCountsAndMayBeAbsent() throws {
         let store = try Fixture.store(named: Fixture.currentCustomColor)

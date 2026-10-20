@@ -4,11 +4,14 @@ import ModeKit
 
 /// The real ``WallpaperStoreInspector`` for the wallpaper store `Index.plist` (ADR-039, ADR-041).
 ///
-/// The fingerprint is the SHA-256 of the canonical text of the two parts `setDesktopImageURL` was observed to change
-/// in spike S2: `Displays` (every display entry) and `Spaces[""]` (the entry for all Spaces). Nested binary property
-/// lists are decoded, key order and encoding do not matter, and the timestamps `LastUse` and `LastSet` are left out at
-/// every depth. Entries of individual Space UUIDs, `SystemDefault` and `AllSpacesAndDisplays` are left out, so a Space
-/// created during a session is not a change by the user.
+/// The fingerprint is the SHA-256 of the canonical text of `Spaces[""]`, the entry for all Spaces, which every apply
+/// changed (S2 and adapter check C7). Nested binary property lists are decoded, key order and encoding do not matter,
+/// and the timestamps `LastUse` and `LastSet` are left out at every depth.
+///
+/// Left out: `Displays`, because `WallpaperAgent` copies the current choice into it by itself, for example after a
+/// restart, which would look like a change by the user (adapter check C7, 2026-10-20); entries of individual Space
+/// UUIDs, so a Space created during a session is not a change by the user; `SystemDefault` and
+/// `AllSpacesAndDisplays`.
 ///
 /// Fails closed: data that is not a property list, or whose top level is not a dictionary with `Displays` and `Spaces`
 /// dictionaries, throws ``WallpaperStoreError/unrecognizedFormat(reason:)``.
@@ -37,9 +40,7 @@ struct PropertyListWallpaperStoreInspector: WallpaperStoreInspector {
         guard case .dictionary(let spaces)? = top[Self.spacesKey] else {
             throw WallpaperStoreError.unrecognizedFormat(reason: "no Spaces dictionary")
         }
-        let displaysText = top[Self.displaysKey]?.canonicalText(excluding: Self.volatileKeys) ?? Self.absentMarker
-        let allSpacesText = try Self.allSpacesText(spaces[Self.allSpacesKey])
-        let canonical = displaysText + "|" + allSpacesText
+        let canonical = try Self.allSpacesText(spaces[Self.allSpacesKey])
         return WallpaperStoreFingerprint(data: Data(SHA256.hash(data: Data(canonical.utf8))))
     }
 
