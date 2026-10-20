@@ -1,0 +1,19 @@
+{
+  "schemaVersion" : 1,
+  "profiles" : [
+    { "id" : "A0000000-0000-4000-8000-000000000001", "name" : "desktop-icons", "steps" : [ { "type" : "hideDesktopIcons" } ] },
+    { "id" : "A0000000-0000-4000-8000-000000000002", "name" : "dock", "steps" : [ { "type" : "hideDock" } ] },
+    { "id" : "A0000000-0000-4000-8000-000000000003", "name" : "menu-bar", "steps" : [ { "type" : "hideMenuBar" } ] },
+    { "id" : "A0000000-0000-4000-8000-000000000004", "name" : "wallpaper-color", "steps" : [
+      { "type" : "wallpaper", "choice" : { "type" : "solidColor", "red" : 30, "green" : 144, "blue" : 255 },
+        "displays" : { "type" : "allDisplays" } } ] },
+    { "id" : "A0000000-0000-4000-8000-000000000005", "name" : "wallpaper-image", "steps" : [
+      { "type" : "wallpaper", "choice" : { "type" : "image", "path" : "__CHECK_DIR__/image-check.png" },
+        "displays" : { "type" : "allDisplays" } } ] },
+    { "id" : "A0000000-0000-4000-8000-000000000006", "name" : "all-five", "steps" : [
+      { "type" : "hideDesktopIcons" }, { "type" : "hideDock" }, { "type" : "hideMenuBar" },
+      { "type" : "hideApps", "exclusions" : [] },
+      { "type" : "wallpaper", "choice" : { "type" : "solidColor", "red" : 30, "green" : 144, "blue" : 255 },
+        "displays" : { "type" : "allDisplays" } } ] }
+  ]
+}

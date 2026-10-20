@@ -26,8 +26,8 @@ Acceptance: all mandatory scenarios in `docs/06-testing.md` pass; ModeKit covera
 ## M2: app shell
 
 Branches: `feat/platform-adapters`, `feat/adapter-check-tool`, `feat/menubar-shell`, `feat/hud`, `feat/hotkey`, `feat/design-system-foundation`, `feat/theme-controller`.
-First branch `feat/platform-adapters` (done, pending merge): the real adapter for every ModeKit port, the composition root, the Automation entitlement and the localized usage description. It is built and tested under safety rules: no test changes a real setting (ADR-040).
-`feat/adapter-check-tool`: a checked-in developer tool that runs the real adapters through the real controller under a backup and diff protocol, and verifies the unverified items (list in `docs/STATUS.md`).
+First branch `feat/platform-adapters` (merged 2026-10-19): the real adapter for every ModeKit port, the composition root, the Automation entitlement and the localized usage description. It is built and tested under safety rules: no test changes a real setting (ADR-040).
+`feat/adapter-check-tool`: a checked-in developer tool that runs the real adapters through the real controller under a backup and diff protocol, and verifies the unverified items (list in `docs/STATUS.md`). The tool is a DEBUG-only mode of the app (ADR-042); its protocol is `docs/13-adapter-check.md`. Done, pending merge: the protocol ran on 2026-10-20 on macOS 27.0.1 (docs/07, C0 to C10) and fixed two adapter defects.
 Deliverables: real platform adapters; menu-bar extra with the three icon states; popover with profile list and activate/deactivate; HUD; hotkey registration; launch at login; design tokens, theme controller (System/Light/Dark), L10n infrastructure with EN and RU; design pass confirming accent and icon set.
 Acceptance: end-to-end activate and deactivate of a hand-written `profiles.json` profile using real system effects; core session and per-action manual QA checklists pass; crash and reboot recovery verified manually.
 

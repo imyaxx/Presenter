@@ -68,7 +68,7 @@ Allowed real I/O is limited to the following:
 - **Files:** temporary files and directories.
 - **Reading the live system:** running applications and screens. The real wallpaper store is read only by hand, to design the inspector; tests use sanitized fixtures under `App/Tests/Fixtures/WallpaperStore`, and a test checks that they contain no `/Users/` path, no user name and no UUID other than a placeholder.
 
-The real effects (Finder, Dock, menu bar, hiding, the wallpaper) are verified by the check tool of the next branch under a backup and diff protocol, not by unit tests.
+The real effects (Finder, Dock, menu bar, hiding, the wallpaper) are verified by the adapter check protocol (`docs/13-adapter-check.md`) under a backup and diff, not by unit tests. The tool's own unit tests (`App/Tests/DeveloperTools/`) use injected stubs and temporary files only.
 
 ## Coverage targets
 
@@ -95,6 +95,9 @@ Executed on a real Mac (record macOS version, date, result in the PR). Never reu
 - [ ] Menu bar: hidden and restored, on the desktop and in a full-screen app; System Settings shows the original value afterwards.
 - [ ] Apps: only listed apps hide; the frontmost app is never hidden; only apps this app hid are unhidden; a closed app is not relaunched.
 - [ ] Wallpaper: solid color and custom image on the current Space of every selected display; other Spaces unchanged; color, still-image and dynamic originals restored, including different originals per display; unplug and replug a display.
+
+### Adapter check protocol
+- [ ] On every new macOS version, and before every release: the adapter check protocol B0 to B10 of `docs/13-adapter-check.md`, with the user present, ending with an empty `adapter-check-diff.sh` against the first backup. Record the results as a C-series entry in `docs/07-macos-integration.md`.
 
 ### Surfaces
 - [ ] Appearance System / Light / Dark in every window and the HUD; live switch of the system appearance in System mode.

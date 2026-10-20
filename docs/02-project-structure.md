@@ -16,8 +16,10 @@
 │   ├── workflows/ci.yml
 │   └── pull_request_template.md
 ├── docs/
-├── Scripts/                     # small, documented scripts: shell scripts called by Makefile, and
-│                                # sanitize-wallpaper-store.swift (run by hand to make test fixtures)
+├── Scripts/                     # small, documented scripts: shell scripts called by Makefile;
+│                                # sanitize-wallpaper-store.swift (run by hand to make test fixtures);
+│                                # adapter-check*.sh, compare-wallpaper-store.swift, adapter-check-profiles.json
+│                                # (the adapter check protocol, docs/13-adapter-check.md)
 ├── Packages/
 │   └── ModeKit/                 # domain core, Foundation only
 │       ├── Package.swift
@@ -62,7 +64,7 @@
 │                                # FakeSolidColorImageRenderer, StandardActionsHarness)
 └── App/
     ├── Sources/
-    │   ├── Application/         # @main, BundleMetadata, PlatformComposition (+Error): the composition root
+    │   ├── Application/         # PresenterMain (@main), PresenterApp, BundleMetadata, PlatformComposition (+Error)
     │   ├── Platform/            # real implementations of ModeKit ports, named by mechanism (ADR-040)
     │   │   ├── Defaults/        # CFPreferencesDefaultsStore
     │   │   ├── Process/         # FoundationProcessRunner
@@ -85,6 +87,8 @@
     │   │   │   ├── Appearance/
     │   │   │   └── Permissions/
     │   │   └── Onboarding/
+    │   ├── DeveloperTools/      # DEBUG only, absent from Release (ADR-042)
+    │   │   └── AdapterCheck/    # the adapter check tool started with --adapter-check (docs/13-adapter-check.md)
     │   ├── DesignSystem/
     │   │   ├── Tokens/          # DSColor, DSSpacing, DSTypography, DSRadius, DSMotion
     │   │   ├── Theme/           # AppearancePreference, ThemeController
@@ -105,9 +109,10 @@
 1. `ModeKit` imports Foundation only. No AppKit, no SwiftUI, no third-party packages.
 2. `Features/*` never import `Platform/*`. Features receive protocols and are built in `Application/`.
 3. `DesignSystem` never imports `Features`, `ModeKit`, or `Platform`.
-4. Features never import each other. Shared UI goes to `DesignSystem/Components`; shared logic goes to `ModeKit`.
-5. Only `Application/` instantiates concrete platform types.
-6. No `Utils`, `Helpers`, `Common`, or `Manager` folders or types. If a name needs one of those words, the responsibility is not understood yet.
+4. `Features/` never refers to `DeveloperTools/`, and every file under `DeveloperTools/` is wrapped in `#if DEBUG`.
+5. Features never import each other. Shared UI goes to `DesignSystem/Components`; shared logic goes to `ModeKit`.
+6. Only `Application/` instantiates concrete platform types.
+7. No `Utils`, `Helpers`, `Common`, or `Manager` folders or types. If a name needs one of those words, the responsibility is not understood yet.
 
 ## Separation of concerns for UI
 

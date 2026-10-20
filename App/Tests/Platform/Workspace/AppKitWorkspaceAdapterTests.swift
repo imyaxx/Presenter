@@ -30,14 +30,22 @@ struct AppKitWorkspaceAdapterTests {
         #expect(await adapter.unhide(absent) == .notRunning)
     }
 
+    /// Regression for adapter check C6 (2026-10-20): `hide()` returned `false` while TextEdit did hide, so the outcome
+    /// comes from the observed `isHidden` of every instance, never from the request's return value.
     @Test(arguments: [
-        ([Bool](), ApplicationVisibilityChange.notRunning),
-        ([false, false], .refused),
-        ([false, true], .changed),
-        ([true], .changed),
+        ([Bool](), AppKitWorkspaceAdapter.Visibility.hidden, ApplicationVisibilityChange?.some(.notRunning)),
+        ([true, true], .hidden, .changed),
+        ([true, false], .hidden, nil),
+        ([false], .hidden, nil),
+        ([false, false], .visible, .changed),
+        ([true], .visible, nil),
     ])
-    func everyInstanceDecidesTheOutcome(results: [Bool], expected: ApplicationVisibilityChange) {
-        #expect(AppKitWorkspaceAdapter.visibilityChange(fromRequestResults: results) == expected)
+    func theObservedStateOfEveryInstanceDecidesTheOutcome(
+        observedHidden: [Bool],
+        wanted: AppKitWorkspaceAdapter.Visibility,
+        expected: ApplicationVisibilityChange?,
+    ) {
+        #expect(AppKitWorkspaceAdapter.visibilityChange(observedHidden: observedHidden, wanted: wanted) == expected)
     }
 
     @Test

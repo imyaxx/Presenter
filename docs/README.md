@@ -18,6 +18,7 @@ Single source of truth for the project. A new Claude Code session must be able t
 | `10-claude-code-protocol.md` | How prompts are written, how sessions start and end | Process changes |
 | `11-development-setup.md` | Tools and versions, first run, daily commands, troubleshooting | Tooling changes or a new setup problem |
 | `12-data-formats.md` | `profiles.json` and `session.json` formats, validation rules, schema version, corrupted and newer-file policy, hand editing | File format or policy changes |
+| `13-adapter-check.md` | The DEBUG-only adapter check tool, its scripts, and the protocol that verifies the real adapters on a real Mac | Tool, scripts or protocol change; each repeat records results in `07` |
 | `prompts/TEMPLATE.md` | Prompt template used for every task | Template changes |
 
 Rules for docs:

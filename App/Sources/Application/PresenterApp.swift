@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-@main
+/// The menu bar app. Started by ``PresenterMain``.
 struct PresenterApp: App {
     private static let menuBarSymbolName = "display"
 
