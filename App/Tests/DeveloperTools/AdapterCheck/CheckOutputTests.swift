@@ -62,6 +62,35 @@ struct CheckOutputTests {
         #expect(forwarded.events.all.count == 1)
     }
 
+    private struct StubProcessRunner: ProcessRunner {
+        let result: Result<ProcessResult, ProcessError>
+
+        func run(_ command: ProcessCommand) async throws -> ProcessResult {
+            try result.get()
+        }
+    }
+
+    @Test
+    func theRecordingProcessRunnerPrintsEachCommandWithItsExitCodeOrError() async throws {
+        let lines = CollectedLines()
+        let killall = URL(filePath: "/usr/bin/killall")
+        let command = ProcessCommand(executableURL: killall, arguments: ["Finder"], timeout: .seconds(10))
+        let exitZero = StubProcessRunner(result: .success(ProcessResult(exitCode: 0)))
+        let timeout = StubProcessRunner(result: .failure(.timedOut(.seconds(10))))
+        let succeeding = RecordingProcessRunner(wrapping: exitZero, output: lines.output)
+        let failing = RecordingProcessRunner(wrapping: timeout, output: lines.output)
+
+        #expect(try await succeeding.run(command) == ProcessResult(exitCode: 0))
+        await #expect(throws: ProcessError.timedOut(.seconds(10))) { try await failing.run(command) }
+
+        #expect(
+            lines.all == [
+                "{\"command\":\"/usr/bin/killall Finder\",\"exitCode\":0,\"type\":\"process\"}",
+                "{\"command\":\"/usr/bin/killall Finder\",\"error\":\"Process timed out after 10.0 seconds\","
+                    + "\"type\":\"process\"}",
+            ])
+    }
+
     @Test
     func theRecordingWorkspacePrintsEachVisibilityRequestAndItsResult() async throws {
         let lines = CollectedLines()

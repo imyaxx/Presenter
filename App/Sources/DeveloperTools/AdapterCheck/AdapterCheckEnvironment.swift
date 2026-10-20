@@ -3,8 +3,8 @@ import Foundation
 import ModeKit
 
 /// The real ports of ``PlatformComposition`` arranged for the tool (ADR-042): the workspace adapter records `hide`
-/// and `unhide` results, generated images, profiles and `session.json` live in the check directory (never the app's
-/// support directory), and session events are printed as well as logged.
+/// and `unhide` results, the process runner records exit codes, generated images, profiles and `session.json` live
+/// in the check directory (never the app's support directory), and session events are printed as well as logged.
 struct AdapterCheckEnvironment: Sendable {
     let ports: ActionPorts
     let wallpaperLocations: WallpaperLocations
@@ -15,7 +15,7 @@ struct AdapterCheckEnvironment: Sendable {
         let real = composition.actionPorts
         ports = ActionPorts(
             defaults: real.defaults,
-            processRunner: real.processRunner,
+            processRunner: RecordingProcessRunner(wrapping: real.processRunner, output: output),
             appleScriptRunner: real.appleScriptRunner,
             workspace: RecordingWorkspaceAdapter(wrapping: real.workspace, output: output),
             notifier: real.notifier,
