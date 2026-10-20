@@ -158,6 +158,22 @@ Consequences:
 
 Proposed by the assistant; user to confirm.
 
+**ADR-042 Adapter check tool: a DEBUG-only mode of the app, and a backup-gated protocol.** Context: the adapters' real effects must be verified on a real Mac before any UI uses them. The Automation permission and its prompt belong to the bundle identity and its `NSAppleEventsUsageDescription`, so only the real app bundle shows the real prompt in both languages.
+
+Decision: the tool is part of the app, in `App/Sources/DeveloperTools/AdapterCheck/`, with every file wrapped in `#if DEBUG`.
+- **Launch.** The entry point `PresenterMain` runs the tool when a Debug build is launched with `--adapter-check <command>`; otherwise it starts `PresenterApp` unchanged. In check mode the app has no menu bar item and no window, and exits when the command finishes.
+- **Commands.** `world`, `store-structure`, `run`, `activate`, `recover`, `wallpaper-latency`, `wallpaper-interrupt`, `notify-menubar` (`docs/13-adapter-check.md`).
+- **Launch contract.** `Scripts/adapter-check.sh` launches the app through `open -n -W`, as spike S4 did. Results are a JSON file, because `open -W` does not return the exit code. Events are JSON lines on standard output, written by one output type, the only one in the app allowed to write there.
+- **Safety.** Commands that change the system refuse without a backup under 24 hours old. The tool works only in `~/presenter-check/`, never in the app's support directory. A profile with a `hideApps` step needs `--hide-only` with the applications the protocol opened.
+- **Scripts.** Shell scripts back up, diff and restore independently of the code under test; `compare-wallpaper-store.swift` compares stores without the inspector.
+- **Formatting.** swift-format no longer indents conditional compilation blocks, so files wrapped whole in `#if DEBUG` keep their layout.
+
+Consequences:
+- Release builds contain no tool code. Verified 2026-10-20 on a Release build: `strings` finds none of `AdapterCheck`, `adapter-check`, `BackupManifestGate`, `WorldSnapshot`, `PrintingSessionLogger` or `presenter-check`. `nm` finds no code or data symbol of the tool, only three debug-map entries naming the empty object file and source folder, which `strip -S` removes.
+- The protocol is repeatable on each macOS version and before releases (docs/06).
+
+Proposed by the assistant; user to confirm.
+
 ## Open
 
 **ADR-013 Focus / Do Not Disturb.** No public API. Only path is a user-installed Shortcut invoked with `shortcuts run`. Decision after spike S3: ship in v1.0, defer to v1.1, or drop. Update 2026-10-17 after S3, **proposed, user to confirm**: ship Focus in v1.0 as an optional action. Onboarding contains a manual setup guide: the user builds a "Set Focus: Do Not Disturb On" Shortcut, an "Off" Shortcut and, optionally, a "Get Current Focus" Shortcut for capture. The Shortcut names are configurable. The app runs them with `shortcuts run`. Reason: S3 measured on and off at 0.14 to 0.18 s and state reads at 0.11 to 0.15 s; a missing Shortcut fails fast with exit 1; reading the previous state works after a one-time "output 1 focus?" prompt, which blocks until answered and so needs a timeout. Distribution of a prebuilt `.shortcut` file is deferred until a dedicated project Apple Account exists (M5), because exporting for "Anyone" requires an iCloud sign-in. Proposed by the user in the M0 session.
