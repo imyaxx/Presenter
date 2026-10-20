@@ -43,5 +43,5 @@ jq -n \
               "defaults/com.apple.controlcenter.plist", "defaults/NSGlobalDomain.plist"]}' \
     >"$backup/MANIFEST.json"
 
-echo "applications: $(jq '.applications | length' "$backup/world.json"), displays: $(jq '.displays | length' "$backup/world.json")"
+echo "applications: $(jq '.details.applications | length' "$backup/world.json"), displays: $(jq '.details.displays | length' "$backup/world.json")"
 echo "$backup"

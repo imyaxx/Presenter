@@ -25,7 +25,7 @@ fi
 current_world="$CHECK_DIR/results/diff-world-$(date -u +%Y%m%dT%H%M%SZ).json"
 "$ROOT/Scripts/adapter-check.sh" --result-file "$current_world" world >/dev/null
 for field in applications displays; do
-    if ! diff_output=$(diff <(jq -S ".$field" "$backup/world.json") <(jq -S ".$field" "$current_world")); then
+    if ! diff_output=$(diff <(jq -S ".details.$field" "$backup/world.json") <(jq -S ".details.$field" "$current_world")); then
         echo "$field differ (< backup, > now):"
         echo "$diff_output"
         status=1
