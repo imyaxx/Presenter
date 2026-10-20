@@ -64,12 +64,15 @@
 │                                # FakeSolidColorImageRenderer, StandardActionsHarness)
 └── App/
     ├── Sources/
-    │   ├── Application/         # PresenterMain (@main), PresenterApp, BundleMetadata, PlatformComposition (+Error)
+    │   ├── Application/         # PresenterMain (@main), PresenterApp, AppDelegate, AppEnvironment, LaunchMode,
+    │   │                        # QuitCoordinator, BundleMetadata, PlatformComposition (+Error), conformance
+    │   │                        # extensions to the Features protocols
     │   ├── Platform/            # real implementations of ModeKit ports, named by mechanism (ADR-040)
     │   │   ├── Defaults/        # CFPreferencesDefaultsStore
     │   │   ├── Process/         # FoundationProcessRunner
     │   │   ├── AppleScript/     # NSAppleScriptRunner, AppleScriptThread
-    │   │   ├── Workspace/       # AppKitWorkspaceAdapter, DisplayIdentifierMapping, WorkspaceError
+    │   │   ├── Workspace/       # AppKitWorkspaceAdapter, DisplayIdentifierMapping, WorkspaceError,
+    │   │   │                    # NSWorkspaceProfilesFolderRevealer, NSRunningApplicationInstanceGuard
     │   │   ├── Notifications/   # DistributedNotificationCenterNotifier
     │   │   ├── Rendering/       # CoreGraphicsSolidColorImageRenderer, RenderingError
     │   │   ├── Wallpaper/       # PropertyListWallpaperStoreInspector, PropertyListValue (ADR-041)
@@ -79,7 +82,11 @@
     │   │   ├── Hotkey/          # later M2 branch
     │   │   └── LoginItem/       # later M2 branch
     │   ├── Features/            # one self-contained folder per feature
-    │   │   ├── MenuBar/         # MenuBarView, MenuBarViewModel
+    │   │   ├── MenuBar/         # MenuBarViewModel, MenuBarPresentation, MenuBarNotice, ProfilesProblem,
+    │   │   │                    # MenuBarIconShape, MenuBarServices, the protocols SessionControlling,
+    │   │   │                    # ProfileLoading, ProfilesFolderRevealing, and the views MenuBarView,
+    │   │   │                    # MenuBarStateLine, MenuBarNoticeView, MenuBarContentView, MenuBarProfileList,
+    │   │   │                    # MenuBarActiveSessionView, MenuBarAttentionView, MenuBarFooter, MenuBarIconLabel
     │   │   ├── Hud/
     │   │   ├── Settings/
     │   │   │   ├── Profiles/
@@ -93,7 +100,7 @@
     │   │   ├── Tokens/          # DSColor, DSSpacing, DSTypography, DSRadius, DSMotion
     │   │   ├── Theme/           # AppearancePreference, ThemeController
     │   │   └── Components/      # DSButton, DSToggleRow, DSSectionHeader, DSEmptyState, ...
-    │   └── Localization/        # L10n namespaces, one file per feature (L10n+Settings.swift, ...)
+    │   └── Localization/        # L10n namespaces, one file per feature: L10n+Menu, L10n+Notices, L10n+Actions
     ├── Resources/
     │   ├── Assets.xcassets      # colors (light/dark variants), app icon, menu-bar icons
     │   ├── Localizable.xcstrings   # String Catalog: en (source), ru

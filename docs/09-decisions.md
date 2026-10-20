@@ -200,6 +200,27 @@ Proposed by the assistant; user to confirm.
 
 Verified on this Mac, 2026-10-20: the protocol B0 to B10 ran with the user present. It found and fixed two defects (ADR-036, ADR-041), and the final diff against the first backup is empty except one Space entry for a Space that exists now (docs/07, C10).
 
+**ADR-043 Menu bar shell.** Context: the first build in which the shipped app changes the user's system. A crash can leave a session active, the menu bar popover is a SwiftUI `MenuBarExtra` whose content life cycle is not documented, and the UI must be testable without the real controller.
+
+Decision:
+- **Recovery at launch.** `AppDelegate` builds `AppEnvironment` and starts it in `applicationWillFinishLaunching`. One owned task follows `stateUpdates()` and runs `recoverIfNeeded()`, never from a view's `.task` or `onAppear`. The popover shows "Restoring" with no trigger until recovery finishes. If the graph cannot be built, the menu only says so and offers Quit.
+- **Protocols at the Features boundary.** `SessionControlling`, `ProfileLoading` and `ProfilesFolderRevealing` live in `Features/MenuBar`, with conformances in `Application/`. `MenuBarViewModel` is `@Observable` and `@MainActor`, makes no system calls and holds no UI text.
+- **Triggers and notices.**
+  - The view model offers and accepts only the triggers the state allows, and runs one at a time.
+  - Notices are mapped from action identifiers, phases and error cases, never from `reason` text. A Dock failure also names the Automation permission.
+  - An unreadable `session.json` is discarded only after an inline two-step confirmation.
+- **Quit restores.** `applicationShouldTerminate` returns `.terminateLater`, and `QuitCoordinator` deactivates an active session and waits at most 15 s. A late or degraded restore still quits (ADR-008).
+- **Single instance.** A second launch activates the first instance and ends before building anything. The check runs after the adapter check launcher, which keeps working with `open -n`.
+- **Test host.** As the unit tests' host (`XCTestConfigurationFilePath` is set), the app builds no session graph and skips the single-instance guard, so `make test` can never recover or restore the user's real session.
+- **Interim icons and popover.** SF Symbols `display`, `eye.slash` and `exclamationmark.triangle`, differing in shape. System controls, fonts and colors. `feat/design-system-foundation` replaces both without changing behavior.
+
+Consequences:
+- A crash or a kill while active is restored on the next launch before any trigger is offered.
+- How macOS treats the 15 s wait at logout and shutdown is unverified.
+- The profile list reloads each time the popover's content appears; whether `MenuBarExtra` rebuilds that content on every open is observed in the manual run (docs/07).
+
+Proposed by the assistant; user to confirm.
+
 ## Open
 
 **ADR-013 Focus / Do Not Disturb.** No public API. Only path is a user-installed Shortcut invoked with `shortcuts run`. Decision after spike S3: ship in v1.0, defer to v1.1, or drop. Update 2026-10-17 after S3, **proposed, user to confirm**: ship Focus in v1.0 as an optional action. Onboarding contains a manual setup guide: the user builds a "Set Focus: Do Not Disturb On" Shortcut, an "Off" Shortcut and, optionally, a "Get Current Focus" Shortcut for capture. The Shortcut names are configurable. The app runs them with `shortcuts run`. Reason: S3 measured on and off at 0.14 to 0.18 s and state reads at 0.11 to 0.15 s; a missing Shortcut fails fast with exit 1; reading the previous state works after a one-time "output 1 focus?" prompt, which blocks until answered and so needs a timeout. Distribution of a prebuilt `.shortcut` file is deferred until a dedicated project Apple Account exists (M5), because exporting for "Anyone" requires an iCloud sign-in. Proposed by the user in the M0 session.

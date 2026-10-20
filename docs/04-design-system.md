@@ -69,8 +69,19 @@ Rules: no component knows about profiles or sessions. Components take plain valu
 ### Menu-bar icon
 Monochrome template image, three states: idle, active, degraded (needs attention). State change must be distinguishable without color (shape change), so it also works with the menu bar auto-hidden and on any wallpaper. Icon assets are vector (PDF) in the asset catalog.
 
+Interim, since `feat/menubar-shell`: the SF Symbols `display` (idle), `eye.slash` (active) and `exclamationmark.triangle` (needs attention), rendered as templates, each with an accessibility label. While a session is applying, restoring or rolling back, the icon keeps its previous shape. `feat/design-system-foundation` replaces these symbols with the vector assets above.
+
 ### Menu-bar popover (window style)
 Width about 320 pt. Top: current state line (Inactive / Active: profile name, with elapsed time). Middle: profile list; click activates; the active profile shows a stop control. Bottom: Settings, Quit. Keyboard navigable, VoiceOver labeled.
+
+Interim, since `feat/menubar-shell` (ADR-043): built with system controls, system fonts and semantic system colors only; no tokens yet.
+- **Width:** 320 pt; text wraps.
+- **States:** Restoring, Inactive, Applying, Active (with an elapsed timer in monospaced digits), Undoing, Needs attention, or that the app could not start.
+- **Notices:** dismissible, under the state line.
+- **Middle:** the profile list, or its empty state with a pointer to the profiles folder. While a session is active, the active profile with Stop. On a failed restore, Retry Restore, and for an unreadable session file an inline two-step Discard.
+- **Bottom:** Show Profiles in Finder, Quit, and the version. No Settings item until the Settings window exists.
+
+`feat/design-system-foundation` restyles the popover without changing its behavior.
 
 ### HUD
 Borderless, non-activating panel centered on the active display, about one second, fades out, no focus steal, not capturable as a blocking window, honors Reduce Motion. Content: icon, profile name, state word. Never appears in an inactive or failed state silently: failures show a danger HUD with the action name.

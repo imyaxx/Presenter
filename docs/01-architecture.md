@@ -170,6 +170,25 @@ ModeKit uses Swift `throws` with typed error enums per component: `SessionError`
 
 Constructor injection. `AppEnvironment` in `Application/` builds the object graph once at launch and passes protocols down. No service locators, no static shared instances.
 
+## App shell (M2, ADR-043)
+
+**Launch order** (`PresenterMain`):
+1. A Debug build started with `--adapter-check` runs the check tool and never reaches the app (ADR-042).
+2. A second launch of the app activates the first instance and ends, before anything is built (`NSRunningApplicationInstanceGuard`). Two instances would race on `session.json`.
+3. `PresenterApp` starts. Its `AppDelegate` builds `AppEnvironment` and, in `applicationWillFinishLaunching`, starts it.
+
+**What `AppEnvironment` builds:** from `PlatformComposition`, the `ProfileStore` and `SessionStore` over `FileManagerFileStore` in the support directory, `StandardActionFactory`, the `SessionController` with `SystemSessionClock` and `OSSessionLogger`, the `MenuBarViewModel` and the `QuitCoordinator`.
+
+**Starting a session.** One owned task subscribes to `stateUpdates()` and runs `recoverIfNeeded()`. Until recovery finishes, the popover shows "Restoring" and offers no trigger; recovery never depends on a view appearing.
+
+**When the graph cannot be built** (`PlatformCompositionError`): the menu says the app could not start, offers Quit, and never activates anything.
+
+**As the host of the unit tests** (`LaunchMode`, detected by the test runner's `XCTestConfigurationFilePath`): the app builds no session graph and skips the single-instance guard, so no test can recover or restore the user's real session.
+
+**Features boundary:** `Features/MenuBar` defines `SessionControlling` (the state stream and the triggers), `ProfileLoading` and `ProfilesFolderRevealing`. `SessionController`, `ProfileStore` and `NSWorkspaceProfilesFolderRevealer` conform through extensions in `Application/`. The view model never sees a concrete type, and the app tests use fakes.
+
+**Quit:** Quit in the popover and Cmd+Q both reach `applicationShouldTerminate`, which returns `.terminateLater`. `QuitCoordinator` deactivates an active session and waits at most 15 s. A restore still running at the deadline, or a degraded result, still lets the app quit: `session.json` persists and the next launch recovers (ADR-008). Other states quit at once.
+
 ## System ports (protocols in ModeKit, implementations in Platform except `FileStore` and `SessionClock`)
 
 Every port has a real implementation since M2 branch 1 (`feat/platform-adapters`); `App/Sources/Application/PlatformComposition.swift` is the only place that builds them (ADR-040). Their real system effects are verified by the next branch, `feat/adapter-check-tool`.
