@@ -221,6 +221,17 @@ Consequences:
 
 Proposed by the assistant; user to confirm.
 
+Verified on this Mac, 2026-10-20 (macOS 27.0.1, D0 to D8):
+- Recovery at launch restores a killed session before any trigger.
+- The popover content's `.task` runs on every open, so the list reloads.
+- Quit and Cmd+Q restore first.
+- A denied Dock permission gives the named notice and a full rollback.
+- An unreadable `session.json` is untouched until the inline Delete.
+- A corrupted `profiles.json` is left unchanged.
+- A second instance ends at once.
+
+Verified on this Mac, 2026-10-21 (D9, D10): Light and Dark, English and Russian. **Corrected:** Retry Restore and Discard Session File… no longer share a row, because in Russian they were truncated; they are stacked at full width (docs/04). Quitting at logout and at shutdown with a session active is still unverified.
+
 ## Open
 
 **ADR-013 Focus / Do Not Disturb.** No public API. Only path is a user-installed Shortcut invoked with `shortcuts run`. Decision after spike S3: ship in v1.0, defer to v1.1, or drop. Update 2026-10-17 after S3, **proposed, user to confirm**: ship Focus in v1.0 as an optional action. Onboarding contains a manual setup guide: the user builds a "Set Focus: Do Not Disturb On" Shortcut, an "Off" Shortcut and, optionally, a "Get Current Focus" Shortcut for capture. The Shortcut names are configurable. The app runs them with `shortcuts run`. Reason: S3 measured on and off at 0.14 to 0.18 s and state reads at 0.11 to 0.15 s; a missing Shortcut fails fast with exit 1; reading the previous state works after a one-time "output 1 focus?" prompt, which blocks until answered and so needs a timeout. Distribution of a prebuilt `.shortcut` file is deferred until a dedicated project Apple Account exists (M5), because exporting for "Anyone" requires an iCloud sign-in. Proposed by the user in the M0 session.

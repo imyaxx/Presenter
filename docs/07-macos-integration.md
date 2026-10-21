@@ -362,3 +362,71 @@ Before each case, `tccutil reset AppleEvents <the app's bundle identifier>` was 
 - TextEdit and Calculator were quit; they were opened for the protocol.
 - Final `adapter-check-diff.sh` against the first backup: keys, applications and displays equal; the store equal except one Space entry present now and absent this morning. A second copy and agent restart added it again, so the agent creates it for a currently existing Space. It changes no wallpaper.
 - Human: the original wallpaper, Dock, icons and menu bar are back, and the number of Spaces is the same.
+
+### D0 2026-10-20 macOS 27.0.1 (menu bar shell Q0, preconditions)
+- Human: the user turned Dock auto-hide off before the first backup, so the Dock action and its prompt could run; it is turned back on by the user at the end. The Claude window stayed on half of the screen; TextEdit and Calculator were opened as the applications to hide.
+- Machine: first backup taken; the app's support folder `~/Library/Application Support/<bundle id>/` did not exist; the Debug app was launched through `open`, one process.
+
+### D1 2026-10-20 macOS 27.0.1 (Q1, launch states and the profile list)
+- Human (screenshot): the monitor icon, and a popover with "Inactive", "No profiles yet" and its explanation, "Show Profiles in Finder", "Version 0.1.0" and "Quit".
+- Machine: launching created nothing on disk. The support folder was created only when "Show Profiles in Finder" was clicked, and Finder opened it empty (human).
+- A `profiles.json` with two profiles was written there by hand: Quick (desktop icons, menu bar) and Full (all five steps; the hide-apps exclusions were every running app except TextEdit and Calculator).
+- Human: reopening the popover without a relaunch listed both profiles. Observed: the popover content's `.task` runs on every open of the `MenuBarExtra` window, so no AppKit notification is needed.
+
+### D2 2026-10-20 macOS 27.0.1 (Q2, Quick)
+- Human: the menu bar hid, and the icon changed to the eye with a slash. The popover showed "Active: Quick" with a running timer. Stop brought the menu bar back. The single desktop item was covered by windows, so its hiding was not seen.
+- Machine: diff against the working backup empty.
+
+### D3 2026-10-20 macOS 27.0.1 (Q3, Full)
+- Human (screenshot):
+  - System Settings showed Dock auto-hide switched on by the session; the Dock, TextEdit and Calculator were hidden; there was no menu bar.
+  - Stop brought everything back.
+- No Automation prompt appeared: the permission granted in the adapter check (C4) was still in place.
+- Machine: diff empty; the app's `wallpapers` folder holds the generated image.
+
+### D4 2026-10-20 macOS 27.0.1 (Q4, crash while active)
+- Machine: with Quick active, `session.json` existed. `kill -9` of the app left it, and the keys stayed changed.
+- After `open` relaunched the app, launch recovery restored everything and removed `session.json` within 0.26 s; diff empty.
+- Human (screenshot): the menu bar was back, and the popover showed "Inactive", the notice "Restored your settings after an interrupted session." and both profiles.
+
+### D5 2026-10-20 macOS 27.0.1 (Q5, quit while active)
+- Human: with Quick active, Quit in the popover restored everything before the app ended, and so did Cmd+Q in the open popover.
+- Machine: the process ended, no `session.json` remained, diff empty. The time between Quit and the end of the process was not measured. `applicationShouldTerminate` with `.terminateLater` is observed to restore first on a normal quit; logout and shutdown are untested.
+
+### D6 2026-10-20 macOS 27.0.1 (Q6, Automation denied)
+- Machine: `tccutil reset AppleEvents <the app's bundle identifier>`, for this app only.
+- Human: Full was activated and the prompt answered Don't Allow. The popover then showed (screenshot) "Inactive" and the notice "Dock could not be applied. Everything was undone. Presenter needs permission to control System Events: System Settings > Privacy & Security > Automation."
+- Machine: diff empty, no `session.json`. The permission was then reset again (undetermined, not granted).
+- During this stage the user started Music; the tool and the app never launch applications.
+
+### D7 2026-10-20 macOS 27.0.1 (Q7, unreadable files)
+- **Unreadable `session.json`.**
+  - Machine: with the app quit, invalid JSON was written to the app's `session.json`. On relaunch the file was left byte-for-byte unchanged.
+  - Human (screenshot): the triangle icon, "Needs attention", "The session file could not be read. Presenter left it untouched.", and the Retry Restore and Discard buttons.
+  - Human: Retry changed nothing; Discard then Cancel returned to the same view; Discard then Delete gave "Inactive" and the monitor icon.
+  - Machine: the file was gone only after Delete.
+- **Corrupted `profiles.json`.**
+  - Human: the popover said the file could not be read and was left unchanged, with no profile buttons.
+  - Machine: the file's hash was unchanged. The sample was restored, and the diff is empty.
+
+### D8 2026-10-20 macOS 27.0.1 (Q8, second instance)
+- Machine: `open -n` of the app while it ran started a second process, which ended in under a second; only the original process remained.
+- Human: one icon in the menu bar.
+
+### D9 2026-10-21 macOS 27.0.1 (Q9, appearance and language)
+- Human: 16 screenshots, kept on the user's Mac and not committed: English and Russian, Light and Dark, each with idle, active Quick, active Full and needs attention. The app was relaunched with `open --args -AppleLanguages "(ru)"`. For the Russian shots the two profiles were renamed in `profiles.json`, because profile names are user data and are shown as written.
+- **Defect, fixed in this branch.**
+  - Human: in Russian, the needs attention state truncated both buttons with an ellipsis ("Повторить восстан…", "Удалить файл сеа…").
+  - Cause: the buttons shared one row in the fixed 320 pt popover. Measured with the 13 pt system font, "Повторить восстановление" is 173 pt and "Удалить файл сеанса…" is 145 pt; with a bordered button 25 pt wider than its label and 8 pt between them, the row needs 376 pt against 288 pt of content. In English it needs 272 pt and fits.
+  - Fix: the two buttons are stacked at full width with wrapping allowed. Stop keeps its full label and the profile name beside it wraps; profile names in the list wrap. `MenuBarLabelWidthTests` measures every popover row in English and Russian.
+  - Human: the two Russian attention screenshots were retaken after the fix; both labels fit.
+- Every other state: no truncation in either language (human and the 16 screenshots).
+- Incidental: the assistant quit the app with SIGTERM while Full was active, without checking first. The relaunch recovered it: all five actions restored, no failure, `session.json` removed, the same path as a crash (D4).
+
+### D10 2026-10-21 macOS 27.0.1 (Q10, final)
+- Machine: the app quit with no `session.json`. `adapter-check-diff.sh` against the first backup of D0:
+  - Dock `autohide` is `true`, the backup `false`: the user turned auto-hide off before D0 and back on at the end, as planned.
+  - System Settings is no longer running; TextEdit, Calculator and Music, opened during the run, are closed.
+  - Displays are equal.
+  - Wallpaper store: the same solid colour (grey 0.0824 in each component) in `Spaces[""]`, `Displays` and `SystemDefault`, stored with different float precision and colour space data, plus two entries for Spaces that exist now (as in C10). The app writes the store only by copying back the bytes it captured, so the re-encoding came from outside a restore; most likely `WallpaperAgent` after the user's Light and Dark switches. Unverified.
+- Left for the user: the neutral sample `profiles.json` of docs/11 (Quick and Full, empty exclusions) in the support directory, and the `wallpapers` folder with the generated image.
