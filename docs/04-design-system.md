@@ -76,6 +76,7 @@ Width about 320 pt. Top: current state line (Inactive / Active: profile name, wi
 
 Interim, since `feat/menubar-shell` (ADR-043): built with system controls, system fonts and semantic system colors only; no tokens yet.
 - **Width:** 320 pt; text wraps.
+- **Russian length:** Russian labels run up to about twice the English width ("Повторить восстановление" 173 pt against "Retry Restore" 82 pt at 13 pt). Buttons share a row only when every language fits: Retry Restore and Discard Session File… are stacked at full width with wrapping allowed, because side by side they were truncated in Russian (Q9, 2026-10-21). Stop keeps its full label and the profile name beside it wraps; profile names wrap in the list. `MenuBarLabelWidthTests` measures every row of the popover in English and Russian with the system font.
 - **States:** Restoring, Inactive, Applying, Active (with an elapsed timer in monospaced digits), Undoing, Needs attention, or that the app could not start.
 - **Notices:** dismissible, under the state line.
 - **Middle:** the profile list, or its empty state with a pointer to the profiles folder. While a session is active, the active profile with Stop. On a failed restore, Retry Restore, and for an unreadable session file an inline two-step Discard.

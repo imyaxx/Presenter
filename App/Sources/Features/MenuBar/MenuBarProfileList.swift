@@ -30,6 +30,7 @@ struct MenuBarProfileList: View {
             Task { await model.activate(profile) }
         } label: {
             Text(verbatim: profile.name)
+                .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .disabled(!model.canActivate)
