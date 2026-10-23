@@ -1,6 +1,6 @@
 # Status
 
-Last updated: 2026-10-20
+Last updated: 2026-10-21
 
 ## Current milestone
 
@@ -8,7 +8,11 @@ Bootstrap: merged to `main` (`1c7f6e1`, 2026-10-17).
 
 M2: app shell in progress.
 
-- Second branch `feat/adapter-check-tool` done, pull request open, not merged.
+- Third branch `feat/menubar-shell` done, pull request open, not merged.
+  - **What it adds:** the menu-bar app with the real session (ADR-043): launch recovery before any trigger, the popover (states, notices, profiles, Stop, Retry, inline Discard, Show Profiles in Finder, Quit), interim SF Symbol icons, quit restores, single instance, and no session graph when hosting the unit tests.
+  - **Tests:** 154 app tests, including `MenuBarLabelWidthTests` (every popover row fits in English and Russian).
+  - **Manual run:** Q0 to Q10 on 2026-10-20 and 2026-10-21 with the user (docs/07, D0 to D10). Q9 found one defect, fixed in this branch: in Russian, Retry Restore and Discard Session File… were truncated side by side, so they are now stacked. The final diff differs from the first backup only by the user's Dock auto-hide, closed applications, and a re-encoded but identical wallpaper colour (D10).
+- Second branch `feat/adapter-check-tool` merged to `main` (`0f48dee`, 2026-10-20).
   - **What it adds:** the DEBUG-only adapter check tool inside the app (ADR-042), its backup, diff and emergency-restore scripts, and `docs/13-adapter-check.md`.
   - **Protocol run:** B0 to B10, on 2026-10-20 on macOS 27.0.1 with the user present. Every adapter item that was `UNVERIFIED` now has a verdict (docs/07, "Verified in M2 branch 2" and C0 to C10).
   - **Two defects found and fixed with regression tests.** `hide()` returns an unreliable `Bool`, so the adapter now observes `isHidden` (ADR-036 note). `WallpaperAgent` rewrites `Displays` by itself, so the fingerprint now covers `Spaces[""]` only (ADR-041 note).
@@ -44,11 +48,11 @@ Not verified: macOS 14 and 15, a second display, wallpaper on all Spaces at once
 
 ## Next step
 
-1. User: review and squash-merge the `feat/adapter-check-tool` pull request. Confirm or reverse ADR-042 and the 2026-10-20 notes on ADR-025 to ADR-028 and ADR-034 to ADR-041 (still pending: ADR-013, ADR-023, ADR-025 to ADR-041).
+1. User: review and squash-merge the `feat/menubar-shell` pull request; confirm or reverse ADR-043.
 2. User decisions raised by the protocol:
    - Should AppleScript error -609 (seen for an unanswered Automation prompt on macOS 27.0.1) map to `timedOut`? It also means the target quit, so the assistant did not change ADR-034.
    - How should the UI explain that applications in full screen stay visible in their own Space (ADR-036 note)?
-3. M2, next branch `feat/menubar-shell` (`docs/08-roadmap.md`).
+3. M2, next branch `feat/hud` (`docs/08-roadmap.md`).
 4. Still unverified:
    - reboot recovery (M2 acceptance);
    - macOS 14 and 15;
@@ -56,10 +60,12 @@ Not verified: macOS 14 and 15, a second display, wallpaper on all Spaces at once
    - the Russian Automation prompt, which needs Russian as the first system language;
    - the user's two "menu bar did not change" reports in C5, not reproduced (a later diagnostic showed the menu bar hidden and restored);
    - `CGDisplayCreateUUIDFromDisplayID` stability across reboot;
-   - launch at login.
+   - launch at login;
+   - quitting at logout and at shutdown with a session active (ADR-043).
 5. Repeat the adapter check protocol (`docs/13-adapter-check.md`) on every new macOS version and before each release (docs/06).
 6. Leftovers on the user's Mac, kept for the user to remove.
-   - From the adapter check: `~/presenter-check/` (backups, results, generated images, local notes). Automation permission for this app's bundle identifier is left granted (`tccutil reset AppleEvents dev.imyaxx.presenter` removes it). One extra Space entry stays in the wallpaper store for a Space that exists now.
+   - From the menu bar shell run: the sample `profiles.json` of docs/11 and a `wallpapers` folder in `~/Library/Application Support/dev.imyaxx.presenter/`; 16 screenshots and copies of the test profiles in `~/presenter-check/`. The Automation permission was reset during Q6, but Full applied the Dock again in Q9, so it is probably granted (`tccutil reset AppleEvents dev.imyaxx.presenter` removes it).
+   - From the adapter check: `~/presenter-check/` (backups, results, generated images, local notes). One extra Space entry stays in the wallpaper store for a Space that exists now.
    - From `feat/platform-adapters`: about 40 empty `~/Library/Preferences/dev.imyaxx.presenter.tests.*.plist` files left by early runs of the defaults tests, before the cleanup waited for cfprefsd; the current tests leave none. From the M0 spikes: `$HOME/presenter-spikes/` (backup and throwaway code); defaults domains `dev.imyaxx.presenter.spike.hotkey-adhoc` and `...hotkey-runtime`; the three "Presenter Focus" Shortcuts and their "Always Allow" focus-output grant; Media & Apple Music access for the Claude app, granted during S1 key discovery.
 
 ## Open decisions
@@ -106,3 +112,4 @@ Not verified: macOS 14 and 15, a second display, wallpaper on all Spaces at once
 | 2026-10-18 | M1 | Branch `feat/modekit-action-wallpaper`: `WallpaperAction`, `WallpaperRestorer`, `WallpaperStoreInspector`, `SolidColorImageRenderer`, `WallpaperLocations`, `ActionPorts`, display members of `WorkspaceAdapter`, factory for all five steps, five-step end-to-end tests, ADR-038, ADR-039; M1 complete in code | Merge, then M2 `feat/platform-adapters` |
 | 2026-10-19 | M2 | Branch `feat/platform-adapters`: real adapters for every port, `PlatformComposition`, Automation entitlement and localized usage description, sanitized wallpaper store fixtures, ADR-040, ADR-041; no real setting changed by any test | Merge, then `feat/adapter-check-tool` |
 | 2026-10-20 | M2 | Branch `feat/adapter-check-tool`: DEBUG-only adapter check tool and scripts, protocol B0 to B10 run with the user (C0 to C10), fixes for `hide()` return values and the wallpaper fingerprint, ADR-042 and dated ADR notes | Merge, then `feat/menubar-shell` |
+| 2026-10-21 | M2 | Branch `feat/menubar-shell`: menu bar shell (ADR-043), Q0 to Q10 run with the user (D0 to D10), Russian button truncation fixed | Merge, then `feat/hud` |

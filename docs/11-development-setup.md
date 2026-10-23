@@ -50,6 +50,54 @@ Run the built app with a different language:
 open -n .build/DerivedData/Build/Products/Debug/Presenter.app --args -AppleLanguages "(ru)"
 ```
 
+## Running the app
+
+Build and launch the Debug app through `open`, so macOS attributes the process, and its Automation prompt, to the app bundle:
+
+```
+make build
+open .build/DerivedData/Build/Products/Debug/Presenter.app
+```
+
+The app has no Dock icon; its icon appears in the menu bar. A second launch only brings the running one forward. Quit from the popover or with Cmd+Q; both restore an active session first.
+
+Profiles live in `~/Library/Application Support/dev.imyaxx.presenter/profiles.json` (the support directory named after the bundle identifier; `session.json` is written next to it while a profile is active). **Show Profiles in Finder** in the popover creates and opens that folder. The popover reloads the file each time it opens, so a hand-edited file shows without a relaunch. The format is in `docs/12-data-formats.md`.
+
+A sample with two profiles:
+
+```json
+{
+  "schemaVersion" : 1,
+  "profiles" : [
+    {
+      "id" : "C0000000-0000-4000-8000-000000000001",
+      "name" : "Quick",
+      "steps" : [ { "type" : "hideDesktopIcons" }, { "type" : "hideMenuBar" } ]
+    },
+    {
+      "id" : "C0000000-0000-4000-8000-000000000002",
+      "name" : "Full",
+      "steps" : [
+        { "type" : "hideDesktopIcons" },
+        { "type" : "hideDock" },
+        { "type" : "hideMenuBar" },
+        { "type" : "hideApps", "exclusions" : [] },
+        { "type" : "wallpaper",
+          "choice" : { "type" : "solidColor", "red" : 38, "green" : 38, "blue" : 38 },
+          "displays" : { "type" : "allDisplays" } }
+      ]
+    }
+  ]
+}
+```
+
+"Full" hides every visible app except the frontmost one, Presenter, and the bundle identifiers listed in `exclusions`. For example, add `"com.apple.Safari"` to keep Safari on screen. The wallpaper is a neutral dark gray on the current Space of every display. The first activation of "Full" asks for permission to control System Events, for the Dock (Allow).
+
+If something is left changed, quit the app first; it restores an active session on quit and on the next launch. If that is not enough, the adapter check scripts restore independently of the app (`docs/13-adapter-check.md`):
+1. Take a backup with `Scripts/adapter-check-backup.sh` **before** experimenting.
+2. If needed, restore with `Scripts/adapter-check-restore.sh <backup>`.
+3. Check with `Scripts/adapter-check-diff.sh <backup>`.
+
 ## Troubleshooting
 
 Problems actually hit while bootstrapping, with the fix in place.
